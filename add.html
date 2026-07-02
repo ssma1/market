@@ -11,7 +11,9 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
     </script>
+    <!-- тут дизайн который я спиздил у ии лишь доработал своей харизмой и прямыми углами без круглово говна -->
     <style>
+    
         * {
             box-sizing: border-box;
             margin: 0;
@@ -457,9 +459,7 @@
     </div>
 
     <script>
-        // ============================================================
-        // 1. FIREBASE + CLOUDINARY КОНФИГ
-        // ============================================================
+        // тут конфиг 
         const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/t5xt96ku/image/upload";
         const CLOUDINARY_PRESET = "ml_default";
 
@@ -475,18 +475,14 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ============================================================
-        // 2. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
-        // ============================================================
+        
         let iconFile = null;
         let screenshotFiles = [];
         let isUploading = false;
 
-        // ============================================================
-        // 3. ОБРАБОТЧИКИ ЗАГРУЗКИ ФАЙЛОВ
-        // ============================================================
+        
 
-        // --- Иконка ---
+        
         const iconUpload = document.getElementById('icon-upload');
         const iconFileInput = document.getElementById('icon-file');
         const iconPreview = document.getElementById('icon-preview');
@@ -549,7 +545,7 @@
             iconUpload.querySelector('.icon').style.color = '#999';
         }
 
-        // --- Скриншоты ---
+        
         const screenshotsUpload = document.getElementById('screenshots-upload');
         const screenshotsInput = document.getElementById('screenshots-files');
         const screenshotsPreview = document.getElementById('screenshots-preview');
@@ -636,9 +632,7 @@
             screenshotsCount.textContent = `Выбрано: ${screenshotFiles.length} из 10`;
         }
 
-        // ============================================================
-        // 4. ОТСЛЕЖИВАНИЕ ДЛИНЫ ОПИСАНИЯ
-        // ============================================================
+        
         const description = document.getElementById('app-description');
         const charCount = document.getElementById('char-count');
 
@@ -646,9 +640,7 @@
             charCount.textContent = description.value.length;
         });
 
-        // ============================================================
-        // 5. ЗАГРУЗКА В CLOUDINARY
-        // ============================================================
+        
         function uploadToCloudinary(file) {
             return new Promise((resolve, reject) => {
                 const formData = new FormData();
@@ -671,9 +663,7 @@
             });
         }
 
-        // ============================================================
-        // 6. ОТПРАВКА ФОРМЫ
-        // ============================================================
+        
         document.getElementById('app-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -700,17 +690,17 @@
             showStatus('Загрузка файлов в облако...', 'loading');
 
             try {
-                // Загружаем иконку
+                // переменная иконки приложухи
                 const iconUrl = await uploadToCloudinary(iconFile);
 
-                // Загружаем скриншоты
+                
                 const screenshotUrls = [];
                 for (const file of screenshotFiles) {
                     const url = await uploadToCloudinary(file);
                     screenshotUrls.push(url);
                 }
 
-                // Собираем данные
+                
                 const appData = {
                     name: name,
                     section: section,
@@ -727,7 +717,7 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                // Сохраняем в Firebase
+                
                 await db.collection('apps').add(appData);
 
                 showStatus('✅ Приложение успешно опубликовано!', 'success');
@@ -746,9 +736,7 @@
             }
         });
 
-        // ============================================================
-        // 7. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-        // ============================================================
+        
         function showStatus(message, type) {
             const status = document.getElementById('status-message');
             status.textContent = message;
@@ -778,9 +766,7 @@
             }, 5000);
         }
 
-        // ============================================================
-        // 8. WATER-RIPPLE
-        // ============================================================
+
         document.addEventListener('click', function(e) {
             const target = e.target.closest('.water-ripple');
             if (!target) return;
@@ -804,7 +790,7 @@
             target.appendChild(circle);
         });
 
-        // Добавляем ключевые кадры для ripple
+        // тут есои не работает поменять значение 
         const style = document.createElement('style');
         style.textContent = `
                 @keyframes ripple-animation {
