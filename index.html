@@ -6,13 +6,13 @@
     <meta name="theme-color" content="#465a65">
     <title>Xdroid Market</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <!-- Firebase SDKs -->
+    <!-- Firebase sec -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
     </script>
     <style>
-        /* --- Сброс --- */
+        /* --- дизайн которая дала мне иишка (говорю честно) */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -586,7 +586,7 @@
 </head>
 <body>
 
-    <!-- ===== ШАПКА ===== -->
+    <!-- ===== ШАПКА азеркнная ===== -->
     <header class="app-header">
         <div class="header-left">
             <i class="material-icons water-ripple" id="burger-trigger" style="padding:4px;">menu</i>
@@ -687,13 +687,11 @@
         </div>
     </div>
 
-    <!-- ===== АУДИО ===== -->
+    
     <audio id="rick-audio" loop src="https://ia801602.us.archive.org/11/items/gertvids_gmail_Rick/Rick.mp3"></audio>
 
     <script>
-        // ============================================================
-        // 1. FIREBASE
-        // ============================================================
+        //конфиг
         const firebaseConfig = {
             apiKey: "AIzaSyAYflXXcFVaCMCmC0HXsKOkg4rdPnkbcKs",
             authDomain: "ssba-bd7d6.firebaseapp.com",
@@ -706,9 +704,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // ============================================================
-        // 2. XSS ЗАЩИТА
-        // ============================================================
+        
         function escapeHTML(str) {
             if (!str) return '';
             const map = {
@@ -726,17 +722,13 @@
             });
         }
 
-        // ============================================================
-        // 3. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
-        // ============================================================
+        
         let currentAppId = null;
         let selectedStars = 0;
         let currentSection = 'games';
         let currentDeveloper = '';
 
-        // ============================================================
-        // 4. КОНФИГУРАЦИЯ ЛЕНТ
-        // ============================================================
+        
         const FEED_CONFIGS = [{
             id: 'feed-new',
             title: 'Новинки и обновления',
@@ -769,9 +761,7 @@
             section: 'apps'
         }];
 
-        // ============================================================
-        // 5. ОТРИСОВКА ЛЕНТ
-        // ============================================================
+        // говно струткруа 
         function renderFeeds() {
             const container = document.getElementById('main-feed-container');
             container.innerHTML = '';
@@ -828,9 +818,7 @@
             });
         }
 
-        // ============================================================
-        // 6. СОЗДАНИЕ КАРТОЧКИ
-        // ============================================================
+        
         function createAppCard(id, data) {
             const card = document.createElement('div');
             card.className = 'app-card water-ripple';
@@ -865,9 +853,7 @@
             return card;
         }
 
-        // ============================================================
-        // 7. ЗАГРУЗКА РАЗДЕЛА
-        // ============================================================
+        
         function loadSection(section) {
             currentSection = section;
             const grid = document.getElementById('section-grid');
@@ -892,9 +878,7 @@
                 });
         }
 
-        // ============================================================
-        // 8. НАВИГАЦИЯ
-        // ============================================================
+        
         function openSection(section) {
             document.getElementById('section-screen').style.display = 'flex';
             document.getElementById('section-title-text').textContent =
@@ -920,9 +904,7 @@
             audio.currentTime = 0;
         }
 
-        // ============================================================
-        // 9. ДЕТАЛИ + ОТЗЫВЫ
-        // ============================================================
+        
         function openAppDetails(docId) {
             currentAppId = docId;
             const screen = document.getElementById('details-screen');
@@ -1002,9 +984,7 @@
             currentAppId = null;
         }
 
-        // ============================================================
-        // 10. УСТАНОВКА ПРИЛОЖЕНИЯ
-        // ============================================================
+        
         function installApp(apkLink) {
             if (apkLink) {
                 window.open(apkLink, '_blank');
@@ -1013,9 +993,7 @@
             }
         }
 
-        // ============================================================
-        // 11. ПРОФИЛЬ РАЗРАБОТЧИКА
-        // ============================================================
+        
         function openDeveloperProfile(developerName) {
             if (!developerName) {
                 alert('Разработчик не указан');
@@ -1074,9 +1052,7 @@
             currentDeveloper = '';
         }
 
-        // ============================================================
-        // 12. ОТЗЫВЫ
-        // ============================================================
+        
         function loadReviews(appId) {
             const container = document.getElementById('reviews-list');
             container.innerHTML = '<div style="color:#999;padding:10px 0;">Загрузка...</div>';
@@ -1134,9 +1110,7 @@
             });
         }
 
-        // ============================================================
-        // 13. ЗВЁЗДЫ
-        // ============================================================
+        
         document.addEventListener('click', function(e) {
             const starEl = e.target.closest('#stars-select i');
             if (!starEl) return;
@@ -1150,9 +1124,7 @@
             });
         }
 
-        // ============================================================
-        // 14. БУРГЕР
-        // ============================================================
+        
         document.getElementById('burger-trigger').addEventListener('click', () => toggleDrawer(true));
 
         function toggleDrawer(open) {
@@ -1167,9 +1139,7 @@
             }
         }
 
-        // ============================================================
-        // 15. ПОИСК
-        // ============================================================
+        
         document.getElementById('search-trigger').addEventListener('click', () => {
             const box = document.getElementById('search-box-container');
             const title = document.getElementById('main-title');
@@ -1193,9 +1163,7 @@
             });
         });
 
-        // ============================================================
-        // 16. WATER-RIPPLE + RIPPLE
-        // ============================================================
+        
         document.addEventListener('click', function(e) {
             const target = e.target.closest('.water-ripple');
             if (!target) return;
@@ -1220,7 +1188,7 @@
             target.appendChild(circle);
         });
 
-        // Добавляем ключевые кадры для ripple
+        // Добавлялла
         const style = document.createElement('style');
         style.textContent = `
                 @keyframes ripple-animation {
@@ -1231,12 +1199,10 @@
 
         window.addEventListener('contextmenu', e => e.preventDefault());
 
-        // ============================================================
-        // 17. ЗАПУСК
-        // ============================================================
+        
         renderFeeds();
 
-        // Экспорт в глобальную область
+        // экспортировка 
         window.openSection = openSection;
         window.closeSection = closeSection;
         window.openLazyScreen = openLazyScreen;
