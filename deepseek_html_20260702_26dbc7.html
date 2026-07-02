@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#465a65">
+    <title>Добавить приложение</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #e2e2e2;
+            color: #333;
+            padding: 16px;
+        }
+
+        .admin-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
+
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .admin-header h1 {
+            font-size: 24px;
+            font-weight: 400;
+            color: #465a65;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: #465a65;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: #354a55;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #d32f2f;
+            margin-left: 4px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #465a65;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #ddd;
+            padding: 20px;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+            position: relative;
+        }
+
+        .file-upload-area:hover {
+            border-color: #465a65;
+            background: #f5f5f5;
+        }
+
+        .file-upload-area.dragover {
+            border-color: #689f38;
+            background: #f0f8e8;
+        }
+
+        .file-upload-area .icon {
+            font-size: 48px;
+            color: #999;
+        }
+
+        .file-upload-area p {
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            background: #f5f5f5;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .preview-item .remove-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        .preview-item .remove-btn:hover {
+            background: #d32f2f;
+        }
+
+        .preview-item.main-icon {
+            border: 3px solid #689f38;
+        }
+
+        .preview-item.main-icon::after {
+            content: 'Иконка';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(104, 159, 56, 0.9);
+            color: white;
+            font-size: 10px;
+            text-align: center;
+            padding: 2px 0;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .submit-btn {
+            background: #689f38;
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 3px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            width: 100%;
+            transition: background 0.2s;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .submit-btn:hover {
+            background: #558b2f;
+        }
+
+        .submit-btn:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 3px;
+            display: none;
+        }
+
+        .status-message.success {
+            display: block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
+        .status-message.error {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .status-message.loading {
+            display: block;
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #90caf9;
+        }
+
+        .screenshots-info {
+            font-size: 12px;
+            color: #757575;
+            margin-top: 4px;
+        }
+
+        /* Water Ripple для кнопок */
+        .water-ripple {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .water-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .water-ripple:active::after {
+            width: 300px;
+            height: 300px;
+            opacity: 1;
+            transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.1s ease;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .admin-container {
+                padding: 16px;
+            }
+            .admin-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .back-btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>
+                <i class="material-icons" style="color:#465a65;">add_circle</i>
+                Добавить приложение
+            </h1>
+            <a href="home.html" class="back-btn">
+                <i class="material-icons" style="font-size:18px;">arrow_back</i>
+                На главную
+            </a>
+        </div>
+
+        <form id="app-form" onsubmit="return false;">
+            <!-- Основная информация -->
+            <div class="form-group">
+                <label>Название приложения <span class="required">*</span></label>
+                <input type="text" id="app-name" placeholder="Введите название" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Раздел <span class="required">*</span></label>
+                    <select id="app-section" required>
+                        <option value="">Выберите раздел</option>
+                        <option value="apps">Приложения</option>
+                        <option value="games">Игры</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Категория <span class="required">*</span></label>
+                    <select id="app-category" required>
+                        <option value="">Выберите категорию</option>
+                        <option value="new">Новинка</option>
+                        <option value="logic">Игры на логику</option>
+                        <option value="services">Актуальные сервисы</option>
+                        <option value="social">Социальные сети</option>
+                        <option value="other">Другое</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Разработчик <span class="required">*</span></label>
+                    <input type="text" id="app-developer" placeholder="Название студии или разработчика" required>
+                </div>
+                <div class="form-group">
+                    <label>Цена</label>
+                    <input type="text" id="app-price" placeholder="Бесплатно или 99 ₽">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Версия</label>
+                    <input type="text" id="app-version" placeholder="1.0.0">
+                </div>
+                <div class="form-group">
+                    <label>Возрастные ограничения</label>
+                    <select id="app-age">
+                        <option value="0+">0+ (Для всех)</option>
+                        <option value="3+">3+</option>
+                        <option value="6+">6+</option>
+                        <option value="12+">12+</option>
+                        <option value="16+">16+</option>
+                        <option value="18+">18+</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Совместимость (Android)</label>
+                <input type="text" id="app-compatibility" placeholder="Например: 5.0 и выше">
+            </div>
+
+            <!-- Ссылка на APK -->
+            <div class="form-group">
+                <label>Ссылка для скачивания APK</label>
+                <input type="url" id="app-apk" placeholder="https://example.com/app.apk">
+                <div style="font-size:12px;color:#757575;margin-top:4px;">
+                    <i class="material-icons" style="font-size:16px;vertical-align:middle;">info</i>
+                    Прямая ссылка на APK файл (например, с GitHub)
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Описание <span class="required">*</span></label>
+                <textarea id="app-description" maxlength="800" placeholder="Опишите приложение (до 800 символов)" required></textarea>
+                <div style="text-align:right;font-size:12px;color:#999;margin-top:4px;">
+                    <span id="char-count">0</span> / 800
+                </div>
+            </div>
+
+            <!-- Загрузка иконки -->
+            <div class="form-group">
+                <label>Иконка приложения <span class="required">*</span></label>
+                <div class="file-upload-area" id="icon-upload">
+                    <i class="material-icons icon" style="font-size:48px;color:#999;">image</i>
+                    <p>Нажмите или перетащите изображение для иконки</p>
+                    <p style="font-size:12px;color:#999;">Рекомендуемый размер: 512x512px</p>
+                </div>
+                <input type="file" id="icon-file" accept="image/*" style="display:none;">
+                <div id="icon-preview" class="preview-grid" style="display:none;"></div>
+            </div>
+
+            <!-- Загрузка скриншотов -->
+            <div class="form-group">
+                <label>Скриншоты (до 10 штук)</label>
+                <div class="file-upload-area" id="screenshots-upload">
+                    <i class="material-icons icon" style="font-size:48px;color:#999;">photo_library</i>
+                    <p>Нажмите или перетащите скриншоты</p>
+                    <p style="font-size:12px;color:#999;">Можно выбрать несколько файлов</p>
+                </div>
+                <input type="file" id="screenshots-files" accept="image/*" multiple style="display:none;">
+                <div id="screenshots-preview" class="preview-grid"></div>
+                <div class="screenshots-info" id="screenshots-count">Выбрано: 0 из 10</div>
+            </div>
+
+            <button type="submit" class="submit-btn water-ripple" id="submit-btn">
+                <i class="material-icons" style="font-size:18px;">check_circle</i>
+                Опубликовать приложение
+            </button>
+
+            <div id="status-message" class="status-message"></div>
+        </form>
+    </div>
+
+    <script>
+        // ============================================================
+        // 1. FIREBASE + CLOUDINARY КОНФИГ
+        // ============================================================
+        const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/t5xt96ku/image/upload";
+        const CLOUDINARY_PRESET = "ml_default";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYflXXcFVaCMCmC0HXsKOkg4rdPnkbcKs",
+            authDomain: "ssba-bd7d6.firebaseapp.com",
+            projectId: "ssba-bd7d6",
+            storageBucket: "ssba-bd7d6.firebasestorage.app",
+            messagingSenderId: "776284145515",
+            appId: "1:776284145515:web:4bc47ad2dac9981fbaee2e"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ============================================================
+        // 2. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ============================================================
+        let iconFile = null;
+        let screenshotFiles = [];
+        let isUploading = false;
+
+        // ============================================================
+        // 3. ОБРАБОТЧИКИ ЗАГРУЗКИ ФАЙЛОВ
+        // ============================================================
+
+        // --- Иконка ---
+        const iconUpload = document.getElementById('icon-upload');
+        const iconFileInput = document.getElementById('icon-file');
+        const iconPreview = document.getElementById('icon-preview');
+
+        iconUpload.addEventListener('click', () => iconFileInput.click());
+
+        iconUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            iconUpload.classList.add('dragover');
+        });
+
+        iconUpload.addEventListener('dragleave', () => {
+            iconUpload.classList.remove('dragover');
+        });
+
+        iconUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            iconUpload.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleIconFile(files[0]);
+            }
+        });
+
+        iconFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleIconFile(e.target.files[0]);
+            }
+        });
+
+        function handleIconFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Пожалуйста, выберите изображение');
+                return;
+            }
+            iconFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                iconPreview.style.display = 'grid';
+                iconPreview.innerHTML = `
+                        <div class="preview-item main-icon">
+                            <img src="${e.target.result}" alt="Иконка">
+                            <button class="remove-btn" onclick="removeIcon()">×</button>
+                        </div>
+                    `;
+                iconUpload.querySelector('p').textContent = 'Иконка выбрана';
+                iconUpload.querySelector('.icon').textContent = 'check_circle';
+                iconUpload.querySelector('.icon').style.color = '#689f38';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeIcon() {
+            iconFile = null;
+            iconFileInput.value = '';
+            iconPreview.style.display = 'none';
+            iconPreview.innerHTML = '';
+            iconUpload.querySelector('p').textContent = 'Нажмите или перетащите изображение для иконки';
+            iconUpload.querySelector('.icon').textContent = 'image';
+            iconUpload.querySelector('.icon').style.color = '#999';
+        }
+
+        // --- Скриншоты ---
+        const screenshotsUpload = document.getElementById('screenshots-upload');
+        const screenshotsInput = document.getElementById('screenshots-files');
+        const screenshotsPreview = document.getElementById('screenshots-preview');
+        const screenshotsCount = document.getElementById('screenshots-count');
+
+        screenshotsUpload.addEventListener('click', () => screenshotsInput.click());
+
+        screenshotsUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            screenshotsUpload.classList.add('dragover');
+        });
+
+        screenshotsUpload.addEventListener('dragleave', () => {
+            screenshotsUpload.classList.remove('dragover');
+        });
+
+        screenshotsUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            screenshotsUpload.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            handleScreenshots(files);
+        });
+
+        screenshotsInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleScreenshots(Array.from(e.target.files));
+            }
+        });
+
+        function handleScreenshots(files) {
+            const remaining = 10 - screenshotFiles.length;
+            const toAdd = files.slice(0, remaining);
+
+            toAdd.forEach(file => {
+                if (!file.type.startsWith('image/')) {
+                    alert('Пожалуйста, выбирайте только изображения');
+                    return;
+                }
+                screenshotFiles.push(file);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.innerHTML = `
+                            <img src="${e.target.result}" alt="Скриншот">
+                            <button class="remove-btn" onclick="removeScreenshot(${screenshotFiles.indexOf(file)})">×</button>
+                        `;
+                    screenshotsPreview.appendChild(div);
+                    updateScreenshotsCount();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            if (files.length > remaining) {
+                alert(`Можно выбрать не более 10 скриншотов. Добавлено ${toAdd.length} из ${files.length}`);
+            }
+            updateScreenshotsCount();
+        }
+
+        function removeScreenshot(index) {
+            screenshotFiles.splice(index, 1);
+            renderScreenshots();
+            updateScreenshotsCount();
+        }
+
+        function renderScreenshots() {
+            screenshotsPreview.innerHTML = '';
+            screenshotFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.innerHTML = `
+                            <img src="${e.target.result}" alt="Скриншот">
+                            <button class="remove-btn" onclick="removeScreenshot(${index})">×</button>
+                        `;
+                    screenshotsPreview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function updateScreenshotsCount() {
+            screenshotsCount.textContent = `Выбрано: ${screenshotFiles.length} из 10`;
+        }
+
+        // ============================================================
+        // 4. ОТСЛЕЖИВАНИЕ ДЛИНЫ ОПИСАНИЯ
+        // ============================================================
+        const description = document.getElementById('app-description');
+        const charCount = document.getElementById('char-count');
+
+        description.addEventListener('input', () => {
+            charCount.textContent = description.value.length;
+        });
+
+        // ============================================================
+        // 5. ЗАГРУЗКА В CLOUDINARY
+        // ============================================================
+        function uploadToCloudinary(file) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_PRESET);
+
+                fetch(CLOUDINARY_URL, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.secure_url) {
+                        resolve(data.secure_url);
+                    } else {
+                        reject(new Error('Ошибка загрузки в Cloudinary'));
+                    }
+                })
+                .catch(reject);
+            });
+        }
+
+        // ============================================================
+        // 6. ОТПРАВКА ФОРМЫ
+        // ============================================================
+        document.getElementById('app-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (isUploading) return;
+
+            // Валидация
+            const name = document.getElementById('app-name').value.trim();
+            const section = document.getElementById('app-section').value;
+            const category = document.getElementById('app-category').value;
+            const developer = document.getElementById('app-developer').value.trim();
+            const description = document.getElementById('app-description').value.trim();
+
+            if (!name) { showStatus('Введите название приложения', 'error'); return; }
+            if (!section) { showStatus('Выберите раздел', 'error'); return; }
+            if (!category) { showStatus('Выберите категорию', 'error'); return; }
+            if (!developer) { showStatus('Введите разработчика', 'error'); return; }
+            if (!description) { showStatus('Введите описание', 'error'); return; }
+            if (!iconFile) { showStatus('Загрузите иконку приложения', 'error'); return; }
+
+            isUploading = true;
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="material-icons" style="font-size:18px;">hourglass_empty</i> Загрузка...';
+            showStatus('Загрузка файлов в облако...', 'loading');
+
+            try {
+                // Загружаем иконку
+                const iconUrl = await uploadToCloudinary(iconFile);
+
+                // Загружаем скриншоты
+                const screenshotUrls = [];
+                for (const file of screenshotFiles) {
+                    const url = await uploadToCloudinary(file);
+                    screenshotUrls.push(url);
+                }
+
+                // Собираем данные
+                const appData = {
+                    name: name,
+                    section: section,
+                    category: category,
+                    developer: developer,
+                    description: description,
+                    price: document.getElementById('app-price').value.trim() || 'Бесплатно',
+                    version: document.getElementById('app-version').value.trim() || '1.0.0',
+                    ageRating: document.getElementById('app-age').value,
+                    compatibility: document.getElementById('app-compatibility').value.trim() || 'Не указано',
+                    apkLink: document.getElementById('app-apk').value.trim() || '',
+                    imageUrl: iconUrl,
+                    screenshots: screenshotUrls,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Сохраняем в Firebase
+                await db.collection('apps').add(appData);
+
+                showStatus('✅ Приложение успешно опубликовано!', 'success');
+                resetForm();
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showStatus('❌ Ошибка: ' + error.message, 'error');
+            } finally {
+                isUploading = false;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                        <i class="material-icons" style="font-size:18px;">check_circle</i>
+                        Опубликовать приложение
+                    `;
+            }
+        });
+
+        // ============================================================
+        // 7. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ============================================================
+        function showStatus(message, type) {
+            const status = document.getElementById('status-message');
+            status.textContent = message;
+            status.className = 'status-message ' + type;
+        }
+
+        function resetForm() {
+            document.getElementById('app-name').value = '';
+            document.getElementById('app-section').value = '';
+            document.getElementById('app-category').value = '';
+            document.getElementById('app-developer').value = '';
+            document.getElementById('app-price').value = '';
+            document.getElementById('app-version').value = '';
+            document.getElementById('app-compatibility').value = '';
+            document.getElementById('app-apk').value = '';
+            document.getElementById('app-description').value = '';
+            document.getElementById('app-age').value = '0+';
+            charCount.textContent = '0';
+
+            removeIcon();
+            screenshotFiles = [];
+            screenshotsPreview.innerHTML = '';
+            updateScreenshotsCount();
+
+            setTimeout(() => {
+                document.getElementById('status-message').className = 'status-message';
+            }, 5000);
+        }
+
+        // ============================================================
+        // 8. WATER-RIPPLE
+        // ============================================================
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.water-ripple');
+            if (!target) return;
+
+            const circle = document.createElement('span');
+            const diameter = Math.max(target.clientWidth, target.clientHeight);
+            const radius = diameter / 2;
+            circle.style.cssText = `
+                    position:absolute;border-radius:50%;
+                    background:rgba(255,255,255,0.3);
+                    transform:scale(0);
+                    animation:ripple-animation 0.5s linear;
+                    pointer-events:none;
+                    width:${diameter}px;height:${diameter}px;
+                    left:${e.clientX - target.getBoundingClientRect().left - radius}px;
+                    top:${e.clientY - target.getBoundingClientRect().top - radius}px;
+                `;
+            const prev = target.querySelector('.ripple');
+            if (prev) prev.remove();
+            circle.classList.add('ripple');
+            target.appendChild(circle);
+        });
+
+        // Добавляем ключевые кадры для ripple
+        const style = document.createElement('style');
+        style.textContent = `
+                @keyframes ripple-animation {
+                    to { transform: scale(4); opacity: 0; }
+                }
+            `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

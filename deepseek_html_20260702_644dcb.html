@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#465a65">
+    <title>Xdroid Market</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
+    </script>
+    <style>
+        /* --- Сброс --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #e2e2e2;
+            color: #333;
+            overflow-x: hidden;
+            padding-bottom: 20px;
+        }
+
+        /* --- Material Icons 2015 стиль --- */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Water Ripple (Google 2015) --- */
+        .water-ripple {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .water-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .water-ripple:active::after {
+            width: 300px;
+            height: 300px;
+            opacity: 1;
+            transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.1s ease;
+        }
+
+        /* --- Шапка --- */
+        .app-header {
+            background-color: #465a65;
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-height: 56px;
+            height: 56px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-title {
+            font-size: 19px;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+        .search-box {
+            display: none;
+            flex: 1;
+            margin-left: 15px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 2px;
+            font-size: 16px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* --- Категории --- */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+        }
+        .cat-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+            border-radius: 2px;
+            gap: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+        }
+        .cat-apps { background-color: #73ba43; }
+        .cat-games { background-color: #689f38; }
+        .cat-movies { background-color: #e53935; }
+        .cat-music { background-color: #fb8c00; }
+        .cat-books { background-color: #039be5; }
+        .cat-press { background-color: #536edf; }
+
+        /* --- Секции на главной --- */
+        .section-container {
+            background: white;
+            margin-bottom: 10px;
+            padding: 12px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #212121;
+        }
+        .section-subtitle {
+            font-size: 13px;
+            color: #757575;
+            margin-top: 2px;
+        }
+        .btn-more {
+            background-color: #689f38;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        /* --- Карточки приложений (исправленный размер) --- */
+        .apps-list {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        .app-card {
+            min-width: 80px;
+            width: 80px;
+            background: white;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .app-thumb {
+            width: 80px;
+            height: 80px;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .app-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .app-meta {
+            padding: 4px 2px;
+            position: relative;
+        }
+        .app-name {
+            font-size: 11px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .app-price {
+            font-size: 10px;
+            color: #689f38;
+            font-weight: bold;
+            margin-top: 1px;
+            text-transform: uppercase;
+        }
+
+        /* --- Сетка для страниц разделов (3 в ряд) --- */
+        .apps-grid-vertical {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px 8px;
+            padding: 12px 8px;
+            background: white;
+        }
+        .apps-grid-vertical .app-card {
+            width: 100%;
+            min-width: unset;
+        }
+        .apps-grid-vertical .app-thumb {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        .apps-grid-vertical .app-name {
+            font-size: 12px;
+        }
+        .apps-grid-vertical .app-price {
+            font-size: 11px;
+        }
+
+        /* --- Полноэкранные оверлеи --- */
+        .full-page-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f1f1f1;
+            z-index: 30;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .page-header {
+            background: #465a65;
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            min-height: 56px;
+            height: 56px;
+            flex-shrink: 0;
+        }
+        .page-header i {
+            cursor: pointer;
+        }
+
+        /* --- Рикролл --- */
+        .rickroll-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+            background: #fafafa;
+        }
+        .rickroll-text {
+            color: #d32f2f;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+        .vinyl-animation {
+            font-size: 80px;
+            animation: spin 3s linear infinite;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Детали приложения --- */
+        .app-detail-main {
+            background: white;
+            padding: 16px;
+            display: flex;
+            gap: 16px;
+        }
+        .app-detail-img {
+            width: 72px;
+            height: 72px;
+            background: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .app-detail-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .app-detail-info {
+            flex: 1;
+        }
+        .app-detail-info h2 {
+            font-size: 18px;
+            font-weight: 400;
+        }
+        .app-detail-info .developer {
+            color: #689f38;
+            font-size: 13px;
+            margin-top: 2px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .app-detail-info .developer:hover {
+            text-decoration: underline;
+        }
+        .app-detail-info .meta-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #757575;
+            flex-wrap: wrap;
+        }
+        .app-detail-info .meta-row span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .app-detail-info .meta-row i {
+            font-size: 16px;
+        }
+        .btn-install {
+            background: #689f38;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            font-weight: bold;
+            border-radius: 3px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .btn-install:hover {
+            background: #558b2f;
+        }
+
+        .screenshots-scroll {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            background: white;
+            margin-top: 10px;
+        }
+        .screenshots-scroll img {
+            height: 220px;
+            border: 1px solid #e0e0e0;
+            object-fit: cover;
+        }
+
+        .reviews-section {
+            background: white;
+            margin-top: 10px;
+            padding: 16px;
+        }
+        .review-item {
+            margin-top: 12px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .review-author {
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .review-text {
+            font-size: 13px;
+            color: #555;
+            margin-top: 3px;
+        }
+        .review-stars {
+            color: #ffb300;
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+
+        /* --- Форма отзыва --- */
+        .review-form {
+            background: white;
+            padding: 16px;
+            margin-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        .review-form input,
+        .review-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .review-form textarea {
+            resize: vertical;
+            min-height: 50px;
+        }
+        .stars-select {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .stars-select i {
+            font-size: 28px;
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .stars-select i.active {
+            color: #ffb300;
+        }
+        .btn-submit-review {
+            background: #689f38;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        /* --- Бургер меню --- */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            display: none;
+        }
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background: white;
+            z-index: 21;
+            transition: left 0.3s ease;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .drawer.open {
+            left: 0;
+        }
+        .drawer-header {
+            background: #97C024;
+            color: white;
+            padding: 20px 16px;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .drawer-header .logo {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .drawer-header .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .drawer-item {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            padding: 14px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #444;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .drawer-item:hover {
+            background: #f0f0f0;
+        }
+        .drawer-item i {
+            color: #465a65;
+            width: 24px;
+            text-align: center;
+        }
+        .drawer-divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 4px 16px;
+        }
+
+        /* --- Профиль разработчика --- */
+        .developer-profile {
+            padding: 16px;
+            background: white;
+        }
+        .developer-profile h2 {
+            font-size: 20px;
+            font-weight: 400;
+            margin-bottom: 16px;
+        }
+        .developer-apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+        }
+        .developer-app-card {
+            cursor: pointer;
+            text-align: center;
+        }
+        .developer-app-card img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            background: #eee;
+        }
+        .developer-app-card .dev-app-name {
+            font-size: 11px;
+            margin-top: 4px;
+            color: #333;
+        }
+
+        @media (max-width: 480px) {
+            .apps-grid-vertical {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px 4px;
+                padding: 8px 4px;
+            }
+            .apps-grid-vertical .app-card {
+                min-width: 0;
+            }
+            .apps-grid-vertical .app-name {
+                font-size: 10px;
+            }
+            .apps-grid-vertical .app-price {
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== ШАПКА ===== -->
+    <header class="app-header">
+        <div class="header-left">
+            <i class="material-icons water-ripple" id="burger-trigger" style="padding:4px;">menu</i>
+            <span class="header-title" id="main-title">Xdroid Market</span>
+            <div class="search-box" id="search-box-container">
+                <input type="text" id="search-input" placeholder="Поиск...">
+            </div>
+        </div>
+        <i class="material-icons water-ripple" id="search-trigger" style="padding:4px;">search</i>
+    </header>
+
+    <!-- ===== КАТЕГОРИИ ===== -->
+    <div class="categories-grid">
+        <div class="cat-btn cat-apps water-ripple" onclick="openSection('apps')"><i class="material-icons">android</i>Приложения</div>
+        <div class="cat-btn cat-games water-ripple" onclick="openSection('games')"><i class="material-icons">videogame_asset</i>Игры</div>
+        <div class="cat-btn cat-movies water-ripple" onclick="openLazyScreen()"><i class="material-icons">movie</i>Фильмы</div>
+        <div class="cat-btn cat-music water-ripple" onclick="openLazyScreen()"><i class="material-icons">headset</i>Музыка</div>
+        <div class="cat-btn cat-books water-ripple" onclick="openLazyScreen()"><i class="material-icons">book</i>Книги</div>
+        <div class="cat-btn cat-press water-ripple" onclick="openLazyScreen()"><i class="material-icons">newspaper</i>Пресса</div>
+    </div>
+
+    <!-- ===== ЛЕНТЫ ===== -->
+    <div id="main-feed-container"></div>
+
+    <!-- ===== ЭКРАН РАЗДЕЛА ===== -->
+    <div class="full-page-overlay" id="section-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeSection()">arrow_back</i>
+            <span id="section-title-text">Раздел</span>
+        </div>
+        <div class="apps-grid-vertical" id="section-grid"></div>
+    </div>
+
+    <!-- ===== РИКРОЛЛ ===== -->
+    <div class="full-page-overlay" id="lazy-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeLazyScreen()">arrow_back</i>
+            <span>Медиацентр</span>
+        </div>
+        <div class="rickroll-container">
+            <div class="rickroll-text">Бля мне лень это делать, лучше послушайте музон</div>
+            <div class="vinyl-animation">🎵</div>
+        </div>
+    </div>
+
+    <!-- ===== ДЕТАЛИ ===== -->
+    <div class="full-page-overlay" id="details-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeAppDetails()">arrow_back</i>
+            <span id="det-header-title">Приложение</span>
+        </div>
+        <div id="details-content"></div>
+    </div>
+
+    <!-- ===== ПРОФИЛЬ РАЗРАБОТЧИКА ===== -->
+    <div class="full-page-overlay" id="developer-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeDeveloperProfile()">arrow_back</i>
+            <span id="dev-header-title">Разработчик</span>
+        </div>
+        <div class="developer-profile" id="developer-content"></div>
+    </div>
+
+    <!-- ===== БУРГЕР ===== -->
+    <div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer(false)"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            <div class="logo">
+                <img src="https://i.ibb.co/LXTz2nbK/2787-20260702164051.png" alt="Xdroid Market">
+            </div>
+            Xdroid Market
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openSection('apps')">
+            <i class="material-icons">apps</i>Приложения
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openSection('games')">
+            <i class="material-icons">videogame_asset</i>Игры
+        </div>
+        <div class="drawer-divider"></div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">local_movies</i>Фильмы
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">library_music</i>Музыка
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">book</i>Книги
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">newspaper</i>Пресса
+        </div>
+        <div class="drawer-divider"></div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false)" style="color:#757575;">
+            <i class="material-icons">settings</i>Настройки
+        </div>
+        <div class="drawer-item water-ripple" onclick="window.location.href='add.html'" style="color:#465a65;">
+            <i class="material-icons">add_circle</i>Добавить
+        </div>
+    </div>
+
+    <!-- ===== АУДИО ===== -->
+    <audio id="rick-audio" loop src="https://ia801602.us.archive.org/11/items/gertvids_gmail_Rick/Rick.mp3"></audio>
+
+    <script>
+        // ============================================================
+        // 1. FIREBASE
+        // ============================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYflXXcFVaCMCmC0HXsKOkg4rdPnkbcKs",
+            authDomain: "ssba-bd7d6.firebaseapp.com",
+            projectId: "ssba-bd7d6",
+            storageBucket: "ssba-bd7d6.firebasestorage.app",
+            messagingSenderId: "776284145515",
+            appId: "1:776284145515:web:4bc47ad2dac9981fbaee2e"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ============================================================
+        // 2. XSS ЗАЩИТА
+        // ============================================================
+        function escapeHTML(str) {
+            if (!str) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#x27;',
+                '/': '&#x2F;',
+                '`': '&#x60;',
+                '=': '&#x3D;'
+            };
+            return String(str).replace(/[&<>"'`=\/]/g, function(s) {
+                return map[s];
+            });
+        }
+
+        // ============================================================
+        // 3. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ============================================================
+        let currentAppId = null;
+        let selectedStars = 0;
+        let currentSection = 'games';
+        let currentDeveloper = '';
+
+        // ============================================================
+        // 4. КОНФИГУРАЦИЯ ЛЕНТ
+        // ============================================================
+        const FEED_CONFIGS = [{
+            id: 'feed-new',
+            title: 'Новинки и обновления',
+            subtitle: 'Свежие приложения',
+            query: (ref) => ref.orderBy('timestamp', 'desc').limit(6),
+            section: 'apps'
+        }, {
+            id: 'feed-logic',
+            title: 'Игры на логику',
+            subtitle: 'Проверь свой интеллект',
+            query: (ref) => ref.where('category', '==', 'logic').limit(6),
+            section: 'games'
+        }, {
+            id: 'feed-services',
+            title: 'Актуальные сервисы',
+            subtitle: 'Полезные инструменты',
+            query: (ref) => ref.where('category', '==', 'services').limit(6),
+            section: 'apps'
+        }, {
+            id: 'feed-social',
+            title: 'Социальные сети',
+            subtitle: 'Будь на связи',
+            query: (ref) => ref.where('category', '==', 'social').limit(6),
+            section: 'apps'
+        }, {
+            id: 'feed-latest',
+            title: 'Последние приложения',
+            subtitle: 'Свежие поступления',
+            query: (ref) => ref.orderBy('timestamp', 'desc').limit(6),
+            section: 'apps'
+        }];
+
+        // ============================================================
+        // 5. ОТРИСОВКА ЛЕНТ
+        // ============================================================
+        function renderFeeds() {
+            const container = document.getElementById('main-feed-container');
+            container.innerHTML = '';
+
+            FEED_CONFIGS.forEach((cfg) => {
+                const section = document.createElement('div');
+                section.className = 'section-container';
+                section.id = cfg.id;
+
+                const header = document.createElement('div');
+                header.className = 'section-header';
+                header.innerHTML = `
+                        <div>
+                            <div class="section-title">${escapeHTML(cfg.title)}</div>
+                            <div class="section-subtitle">${escapeHTML(cfg.subtitle)}</div>
+                        </div>
+                        <div class="btn-more water-ripple" onclick="openSection('${cfg.section}')">Ещё</div>
+                    `;
+
+                const list = document.createElement('div');
+                list.className = 'apps-list';
+                list.id = `${cfg.id}-list`;
+                list.innerHTML = '<div style="padding:10px;color:#999;">Загрузка...</div>';
+
+                section.appendChild(header);
+                section.appendChild(list);
+                container.appendChild(section);
+
+                let query = db.collection('apps');
+                if (cfg.query) {
+                    query = cfg.query(query);
+                }
+                if (!cfg.query.toString().includes('where')) {
+                    query = db.collection('apps').orderBy('timestamp', 'desc').limit(6);
+                }
+
+                query.get()
+                    .then(snapshot => {
+                        list.innerHTML = '';
+                        if (snapshot.empty) {
+                            list.innerHTML = '<div style="padding:10px;color:#999;">Нет приложений</div>';
+                            return;
+                        }
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            const card = createAppCard(doc.id, data);
+                            list.appendChild(card);
+                        });
+                    })
+                    .catch(err => {
+                        list.innerHTML = '<div style="padding:10px;color:#d32f2f;">Ошибка загрузки</div>';
+                        console.error(err);
+                    });
+            });
+        }
+
+        // ============================================================
+        // 6. СОЗДАНИЕ КАРТОЧКИ
+        // ============================================================
+        function createAppCard(id, data) {
+            const card = document.createElement('div');
+            card.className = 'app-card water-ripple';
+            card.onclick = () => openAppDetails(id);
+
+            const thumb = document.createElement('div');
+            thumb.className = 'app-thumb';
+            if (data.imageUrl) {
+                const img = document.createElement('img');
+                img.src = data.imageUrl;
+                img.alt = escapeHTML(data.name || 'App');
+                img.loading = 'lazy';
+                thumb.appendChild(img);
+            } else {
+                thumb.innerHTML = '<i class="material-icons" style="font-size:32px;color:#999;">android</i>';
+            }
+
+            const meta = document.createElement('div');
+            meta.className = 'app-meta';
+            const name = document.createElement('div');
+            name.className = 'app-name';
+            name.textContent = escapeHTML(data.name || 'Без названия');
+            const price = document.createElement('div');
+            price.className = 'app-price';
+            price.textContent = escapeHTML(data.price || 'Бесплатно');
+
+            meta.appendChild(name);
+            meta.appendChild(price);
+            card.appendChild(thumb);
+            card.appendChild(meta);
+
+            return card;
+        }
+
+        // ============================================================
+        // 7. ЗАГРУЗКА РАЗДЕЛА
+        // ============================================================
+        function loadSection(section) {
+            currentSection = section;
+            const grid = document.getElementById('section-grid');
+            grid.innerHTML = '<div style="padding:20px;color:#999;">Загрузка...</div>';
+
+            db.collection('apps').where('section', '==', section).get()
+                .then(snapshot => {
+                    grid.innerHTML = '';
+                    if (snapshot.empty) {
+                        grid.innerHTML = '<div style="padding:20px;color:#999;">Нет приложений</div>';
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const card = createAppCard(doc.id, data);
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(err => {
+                    grid.innerHTML = '<div style="padding:20px;color:#d32f2f;">Ошибка</div>';
+                    console.error(err);
+                });
+        }
+
+        // ============================================================
+        // 8. НАВИГАЦИЯ
+        // ============================================================
+        function openSection(section) {
+            document.getElementById('section-screen').style.display = 'flex';
+            document.getElementById('section-title-text').textContent =
+                section === 'apps' ? 'Приложения' : 'Игры';
+            loadSection(section);
+            toggleDrawer(false);
+        }
+
+        function closeSection() {
+            document.getElementById('section-screen').style.display = 'none';
+        }
+
+        function openLazyScreen() {
+            toggleDrawer(false);
+            document.getElementById('lazy-screen').style.display = 'flex';
+            document.getElementById('rick-audio').play().catch(() => {});
+        }
+
+        function closeLazyScreen() {
+            document.getElementById('lazy-screen').style.display = 'none';
+            const audio = document.getElementById('rick-audio');
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        // ============================================================
+        // 9. ДЕТАЛИ + ОТЗЫВЫ
+        // ============================================================
+        function openAppDetails(docId) {
+            currentAppId = docId;
+            const screen = document.getElementById('details-screen');
+            screen.style.display = 'flex';
+
+            db.collection('apps').doc(docId).get()
+                .then(doc => {
+                    if (!doc.exists) return;
+                    const data = doc.data();
+                    renderDetails(data, docId);
+                    loadReviews(docId);
+                })
+                .catch(err => console.error(err));
+        }
+
+        function renderDetails(data, docId) {
+            const container = document.getElementById('details-content');
+            const iconHtml = data.imageUrl ?
+                `<img src="${data.imageUrl}" alt="icon">` :
+                '<i class="material-icons" style="font-size:40px;color:#999;">android</i>';
+
+            container.innerHTML = `
+                    <div class="app-detail-main">
+                        <div class="app-detail-img">${iconHtml}</div>
+                        <div class="app-detail-info">
+                            <h2>${escapeHTML(data.name || 'Без названия')}</h2>
+                            <div class="developer" onclick="openDeveloperProfile('${escapeHTML(data.developer || '')}')">
+                                ${escapeHTML(data.developer || 'Неизвестный разработчик')}
+                            </div>
+                            <div class="meta-row">
+                                <span><i class="material-icons">star</i> ${escapeHTML(data.rating || 'Нет оценок')}</span>
+                                <span><i class="material-icons">download</i> ${escapeHTML(data.downloads || '0')}+</span>
+                                <span><i class="material-icons">android</i> ${escapeHTML(data.compatibility || 'Не указано')}</span>
+                                <span><i class="material-icons">verified_user</i> ${escapeHTML(data.ageRating || '0+')}</span>
+                            </div>
+                            <div style="font-size:12px;color:#999;margin-top:4px;">
+                                Версия ${escapeHTML(data.version || '1.0.0')}
+                            </div>
+                            <button class="btn-install water-ripple" onclick="installApp('${escapeHTML(data.apkLink || '')}')">
+                                <i class="material-icons" style="font-size:18px;vertical-align:middle;">file_download</i>
+                                Установить
+                            </button>
+                        </div>
+                    </div>
+                    <div style="padding:0 16px 8px;background:white;">
+                        <p style="font-size:14px;color:#555;line-height:1.5;">${escapeHTML(data.description || '')}</p>
+                    </div>
+                    <div class="screenshots-scroll">
+                        ${data.screenshots && data.screenshots.length > 0 ?
+                            data.screenshots.map(url => `<img src="${escapeHTML(url)}" alt="Скриншот">`).join('') :
+                            '<div style="padding:20px;color:#999;">Нет скриншотов</div>'
+                        }
+                    </div>
+                    <div class="reviews-section">
+                        <h3 style="font-size:14px;font-weight:500;color:#212121;">Отзывы</h3>
+                        <div id="reviews-list"></div>
+                    </div>
+                    <div class="review-form">
+                        <input type="text" id="review-author-input" placeholder="Ваше имя" value="Аноним">
+                        <div class="stars-select" id="stars-select">
+                            <i class="material-icons" data-star="1">star_border</i>
+                            <i class="material-icons" data-star="2">star_border</i>
+                            <i class="material-icons" data-star="3">star_border</i>
+                            <i class="material-icons" data-star="4">star_border</i>
+                            <i class="material-icons" data-star="5">star_border</i>
+                        </div>
+                        <textarea id="review-text-input" placeholder="Ваш отзыв..."></textarea>
+                        <button class="btn-submit-review water-ripple" onclick="submitReview()">Отправить</button>
+                    </div>
+                `;
+
+            document.getElementById('det-header-title').textContent = escapeHTML(data.name || 'Приложение');
+        }
+
+        function closeAppDetails() {
+            document.getElementById('details-screen').style.display = 'none';
+            currentAppId = null;
+        }
+
+        // ============================================================
+        // 10. УСТАНОВКА ПРИЛОЖЕНИЯ
+        // ============================================================
+        function installApp(apkLink) {
+            if (apkLink) {
+                window.open(apkLink, '_blank');
+            } else {
+                alert('Ссылка для скачивания не указана разработчиком');
+            }
+        }
+
+        // ============================================================
+        // 11. ПРОФИЛЬ РАЗРАБОТЧИКА
+        // ============================================================
+        function openDeveloperProfile(developerName) {
+            if (!developerName) {
+                alert('Разработчик не указан');
+                return;
+            }
+            currentDeveloper = developerName;
+            document.getElementById('developer-screen').style.display = 'flex';
+            document.getElementById('dev-header-title').textContent = escapeHTML(developerName);
+
+            const container = document.getElementById('developer-content');
+            container.innerHTML = `
+                    <h2>${escapeHTML(developerName)}</h2>
+                    <p style="color:#757575;margin-bottom:16px;">Все приложения разработчика</p>
+                    <div class="developer-apps-grid" id="dev-apps-grid">
+                        <div style="color:#999;">Загрузка...</div>
+                    </div>
+                `;
+
+            db.collection('apps')
+                .where('developer', '==', developerName)
+                .get()
+                .then(snapshot => {
+                    const grid = document.getElementById('dev-apps-grid');
+                    grid.innerHTML = '';
+                    if (snapshot.empty) {
+                        grid.innerHTML = '<div style="color:#999;">Нет приложений</div>';
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const card = document.createElement('div');
+                        card.className = 'developer-app-card';
+                        card.onclick = () => {
+                            closeDeveloperProfile();
+                            openAppDetails(doc.id);
+                        };
+                        const img = data.imageUrl ?
+                            `<img src="${escapeHTML(data.imageUrl)}" alt="${escapeHTML(data.name)}">` :
+                            '<div style="width:70px;height:70px;background:#eee;display:flex;align-items:center;justify-content:center;margin:0 auto;"><i class="material-icons" style="font-size:32px;color:#999;">android</i></div>';
+                        card.innerHTML = `
+                                ${img}
+                                <div class="dev-app-name">${escapeHTML(data.name || 'Без названия')}</div>
+                            `;
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(err => {
+                    document.getElementById('dev-apps-grid').innerHTML =
+                        '<div style="color:#d32f2f;">Ошибка загрузки</div>';
+                    console.error(err);
+                });
+        }
+
+        function closeDeveloperProfile() {
+            document.getElementById('developer-screen').style.display = 'none';
+            currentDeveloper = '';
+        }
+
+        // ============================================================
+        // 12. ОТЗЫВЫ
+        // ============================================================
+        function loadReviews(appId) {
+            const container = document.getElementById('reviews-list');
+            container.innerHTML = '<div style="color:#999;padding:10px 0;">Загрузка...</div>';
+
+            db.collection('reviews')
+                .where('appId', '==', appId)
+                .orderBy('timestamp', 'desc')
+                .get()
+                .then(snapshot => {
+                    container.innerHTML = '';
+                    if (snapshot.empty) {
+                        container.innerHTML = '<div style="color:#999;padding:10px 0;">Нет отзывов</div>';
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const r = doc.data();
+                        const item = document.createElement('div');
+                        item.className = 'review-item';
+                        const stars = '★'.repeat(Math.round(r.rating)) + '☆'.repeat(5 - Math.round(r.rating));
+                        item.innerHTML = `
+                                <div class="review-author">${escapeHTML(r.author) || 'Аноним'}</div>
+                                <div class="review-stars">${stars}</div>
+                                <div class="review-text">${escapeHTML(r.text) || ''}</div>
+                            `;
+                        container.appendChild(item);
+                    });
+                })
+                .catch(err => {
+                    container.innerHTML = '<div style="color:#d32f2f;">Ошибка</div>';
+                    console.error(err);
+                });
+        }
+
+        function submitReview() {
+            if (!currentAppId) { alert('Откройте приложение'); return; }
+            const author = document.getElementById('review-author-input').value.trim() || 'Аноним';
+            const text = document.getElementById('review-text-input').value.trim();
+            if (!text) { alert('Напишите отзыв'); return; }
+            if (selectedStars === 0) { alert('Поставьте оценку'); return; }
+
+            db.collection('reviews').add({
+                appId: currentAppId,
+                author: author,
+                text: text,
+                rating: selectedStars,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                document.getElementById('review-text-input').value = '';
+                selectedStars = 0;
+                updateStarsUI();
+                loadReviews(currentAppId);
+            }).catch(err => {
+                alert('Ошибка');
+                console.error(err);
+            });
+        }
+
+        // ============================================================
+        // 13. ЗВЁЗДЫ
+        // ============================================================
+        document.addEventListener('click', function(e) {
+            const starEl = e.target.closest('#stars-select i');
+            if (!starEl) return;
+            selectedStars = parseInt(starEl.dataset.star);
+            updateStarsUI();
+        });
+
+        function updateStarsUI() {
+            document.querySelectorAll('#stars-select i').forEach(el => {
+                el.textContent = parseInt(el.dataset.star) <= selectedStars ? 'star' : 'star_border';
+            });
+        }
+
+        // ============================================================
+        // 14. БУРГЕР
+        // ============================================================
+        document.getElementById('burger-trigger').addEventListener('click', () => toggleDrawer(true));
+
+        function toggleDrawer(open) {
+            const overlay = document.getElementById('drawer-overlay');
+            const drawer = document.getElementById('drawer');
+            if (open) {
+                overlay.style.display = 'block';
+                setTimeout(() => drawer.classList.add('open'), 10);
+            } else {
+                drawer.classList.remove('open');
+                setTimeout(() => overlay.style.display = 'none', 300);
+            }
+        }
+
+        // ============================================================
+        // 15. ПОИСК
+        // ============================================================
+        document.getElementById('search-trigger').addEventListener('click', () => {
+            const box = document.getElementById('search-box-container');
+            const title = document.getElementById('main-title');
+            if (box.style.display === 'block') {
+                box.style.display = 'none';
+                title.style.display = 'block';
+                document.getElementById('search-input').value = '';
+                document.querySelectorAll('.app-card').forEach(c => c.style.display = '');
+            } else {
+                title.style.display = 'none';
+                box.style.display = 'block';
+                document.getElementById('search-input').focus();
+            }
+        });
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.app-card').forEach(card => {
+                const name = card.querySelector('.app-name')?.innerText?.toLowerCase() || '';
+                card.style.display = name.includes(query) ? '' : 'none';
+            });
+        });
+
+        // ============================================================
+        // 16. WATER-RIPPLE + RIPPLE
+        // ============================================================
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.water-ripple');
+            if (!target) return;
+            if (navigator.vibrate) navigator.vibrate(5);
+
+            const circle = document.createElement('span');
+            const diameter = Math.max(target.clientWidth, target.clientHeight);
+            const radius = diameter / 2;
+            circle.style.cssText = `
+                    position:absolute;border-radius:50%;
+                    background:rgba(255,255,255,0.3);
+                    transform:scale(0);
+                    animation:ripple-animation 0.5s linear;
+                    pointer-events:none;
+                    width:${diameter}px;height:${diameter}px;
+                    left:${e.clientX - target.getBoundingClientRect().left - radius}px;
+                    top:${e.clientY - target.getBoundingClientRect().top - radius}px;
+                `;
+            const prev = target.querySelector('.ripple');
+            if (prev) prev.remove();
+            circle.classList.add('ripple');
+            target.appendChild(circle);
+        });
+
+        // Добавляем ключевые кадры для ripple
+        const style = document.createElement('style');
+        style.textContent = `
+                @keyframes ripple-animation {
+                    to { transform: scale(4); opacity: 0; }
+                }
+            `;
+        document.head.appendChild(style);
+
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        // ============================================================
+        // 17. ЗАПУСК
+        // ============================================================
+        renderFeeds();
+
+        // Экспорт в глобальную область
+        window.openSection = openSection;
+        window.closeSection = closeSection;
+        window.openLazyScreen = openLazyScreen;
+        window.closeLazyScreen = closeLazyScreen;
+        window.openAppDetails = openAppDetails;
+        window.closeAppDetails = closeAppDetails;
+        window.openDeveloperProfile = openDeveloperProfile;
+        window.closeDeveloperProfile = closeDeveloperProfile;
+        window.installApp = installApp;
+        window.submitReview = submitReview;
+        window.toggleDrawer = toggleDrawer;
+    </script>
+</body>
+</html>
