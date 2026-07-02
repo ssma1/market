@@ -926,13 +926,6 @@ service cloud.firestore {
       allow read: if true;
     }
     
-    // Запись в коллекцию apps - только для администратора
-    match /apps/{appId} {
-      allow write: if request.auth != null && 
-                     request.auth.uid == 'YOUR_ADMIN_UID';
-      allow read: if true;
-    }
-    
     // Отзывы - любой может писать
     match /reviews/{reviewId} {
       allow read: if true;
