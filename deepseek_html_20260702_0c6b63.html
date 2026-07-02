@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#465a65">
+    <title>Xdroid Market</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
+    </script>
+    <style>
+        :root {
+            --bg-primary: #e2e2e2;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #757575;
+            --text-light: #999999;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0,0,0,0.1);
+            --header-bg: #465a65;
+            --header-text: #ffffff;
+            --drawer-bg: #97C024;
+            --input-bg: #ffffff;
+            --input-border: #dddddd;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-card: #2d2d2d;
+            --text-primary: #e8e8e8;
+            --text-secondary: #aaaaaa;
+            --text-light: #888888;
+            --border-color: #444444;
+            --shadow-color: rgba(0,0,0,0.3);
+            --header-bg: #2d2d2d;
+            --header-text: #e8e8e8;
+            --drawer-bg: #1a4a1a;
+            --input-bg: #3d3d3d;
+            --input-border: #555555;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            padding-bottom: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        .water-ripple {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .water-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.4s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .water-ripple:active::after {
+            width: 300px;
+            height: 300px;
+            opacity: 1;
+            transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.1s ease;
+        }
+        .app-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 2px 5px var(--shadow-color);
+            min-height: 56px;
+            height: 56px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-title {
+            font-size: 19px;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+        .search-box {
+            display: none;
+            flex: 1;
+            margin-left: 15px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 2px;
+            font-size: 16px;
+            outline: none;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+        .categories-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px;
+        }
+        .cat-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+            border-radius: 2px;
+            gap: 10px;
+            box-shadow: 0 1px 2px var(--shadow-color);
+            cursor: pointer;
+        }
+        .cat-apps { background-color: #73ba43; }
+        .cat-games { background-color: #689f38; }
+        .cat-movies { background-color: #e53935; }
+        .cat-music { background-color: #fb8c00; }
+        .cat-books { background-color: #039be5; }
+        .cat-press { background-color: #536edf; }
+        .section-container {
+            background: var(--bg-card);
+            margin-bottom: 10px;
+            padding: 12px;
+            transition: background-color 0.3s;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .section-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .btn-more {
+            background-color: #689f38;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        .apps-list {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        .app-card {
+            min-width: 80px;
+            width: 80px;
+            background: var(--bg-card);
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color 0.3s;
+        }
+        .app-thumb {
+            width: 80px;
+            height: 80px;
+            background-color: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: background-color 0.3s;
+        }
+        .app-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .app-meta {
+            padding: 4px 2px;
+            position: relative;
+        }
+        .app-name {
+            font-size: 11px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .app-price {
+            font-size: 10px;
+            color: #689f38;
+            font-weight: bold;
+            margin-top: 1px;
+            text-transform: uppercase;
+        }
+        .apps-grid-vertical {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px 8px;
+            padding: 12px 8px;
+            background: var(--bg-card);
+            transition: background-color 0.3s;
+        }
+        .apps-grid-vertical .app-card {
+            width: 100%;
+            min-width: unset;
+        }
+        .apps-grid-vertical .app-thumb {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        .apps-grid-vertical .app-name {
+            font-size: 12px;
+        }
+        .apps-grid-vertical .app-price {
+            font-size: 11px;
+        }
+        .full-page-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            z-index: 30;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: background-color 0.3s;
+        }
+        .page-header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 18px;
+            box-shadow: 0 2px 5px var(--shadow-color);
+            min-height: 56px;
+            height: 56px;
+            flex-shrink: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .page-header i {
+            cursor: pointer;
+        }
+        .app-detail-main {
+            background: var(--bg-card);
+            padding: 16px;
+            display: flex;
+            gap: 16px;
+            transition: background-color 0.3s;
+        }
+        .app-detail-img {
+            width: 72px;
+            height: 72px;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            overflow: hidden;
+            transition: background-color 0.3s;
+        }
+        .app-detail-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .app-detail-info {
+            flex: 1;
+        }
+        .app-detail-info h2 {
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--text-primary);
+        }
+        .app-detail-info .developer {
+            color: #689f38;
+            font-size: 13px;
+            margin-top: 2px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .app-detail-info .meta-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+        .app-detail-info .meta-row span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .app-detail-info .meta-row i {
+            font-size: 16px;
+        }
+        .btn-install {
+            background: #689f38;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            font-weight: bold;
+            border-radius: 3px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .screenshots-scroll {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            background: var(--bg-card);
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        .screenshots-scroll img {
+            height: 220px;
+            border: 1px solid var(--border-color);
+            object-fit: cover;
+        }
+        .reviews-section {
+            background: var(--bg-card);
+            margin-top: 10px;
+            padding: 16px;
+            transition: background-color 0.3s;
+        }
+        .review-item {
+            margin-top: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .review-author {
+            font-weight: bold;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+        .review-date {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+        .review-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+        }
+        .review-stars {
+            color: #ffb300;
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+        .review-form {
+            background: var(--bg-card);
+            padding: 16px;
+            margin-top: 10px;
+            border-top: 1px solid var(--border-color);
+            transition: background-color 0.3s;
+        }
+        .review-form input,
+        .review-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--input-border);
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 14px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .review-form textarea {
+            resize: vertical;
+            min-height: 50px;
+        }
+        .stars-select {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .stars-select i {
+            font-size: 28px;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .stars-select i.active {
+            color: #ffb300;
+        }
+        .btn-submit-review {
+            background: #689f38;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 20;
+            display: none;
+        }
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100%;
+            background: var(--bg-secondary);
+            z-index: 21;
+            transition: left 0.3s ease, background-color 0.3s;
+            box-shadow: 3px 0 10px var(--shadow-color);
+        }
+        .drawer.open {
+            left: 0;
+        }
+        .drawer-header {
+            background: var(--drawer-bg);
+            color: white;
+            padding: 20px 16px;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background-color 0.3s;
+        }
+        .drawer-header .logo {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .drawer-header .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .drawer-item {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            padding: 14px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: background 0.2s, color 0.3s;
+        }
+        .drawer-item:hover {
+            background: var(--bg-primary);
+        }
+        .drawer-item i {
+            color: var(--text-secondary);
+            width: 24px;
+            text-align: center;
+            transition: color 0.3s;
+        }
+        .drawer-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 16px;
+            transition: background-color 0.3s;
+        }
+        .developer-profile {
+            padding: 16px;
+            background: var(--bg-card);
+            transition: background-color 0.3s;
+        }
+        .developer-profile h2 {
+            font-size: 20px;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+        .developer-apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+        }
+        .developer-app-card {
+            cursor: pointer;
+            text-align: center;
+        }
+        .developer-app-card img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            background: var(--bg-primary);
+        }
+        .developer-app-card .dev-app-name {
+            font-size: 11px;
+            margin-top: 4px;
+            color: var(--text-primary);
+        }
+
+        /* --- Настройки --- */
+        .settings-container {
+            padding: 16px;
+            background: var(--bg-card);
+            flex: 1;
+            transition: background-color 0.3s;
+        }
+        .settings-group {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .settings-group h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+        .settings-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .settings-group input,
+        .settings-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--input-border);
+            border-radius: 3px;
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .settings-group input:focus {
+            outline: none;
+            border-color: #689f38;
+        }
+        .settings-group .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        .settings-group .toggle-row span {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+            border: 2px solid var(--border-color);
+        }
+        .toggle-switch.active {
+            background: #689f38;
+            border-color: #689f38;
+        }
+        .toggle-switch .slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s, background 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .toggle-switch.active .slider {
+            left: 26px;
+            background: white;
+        }
+        .save-settings-btn {
+            background: #689f38;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            width: 100%;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .save-settings-btn:hover {
+            background: #558b2f;
+        }
+        .settings-status {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 3px;
+            font-size: 13px;
+            display: none;
+        }
+        .settings-status.success {
+            display: block;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .settings-status.error {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Правила Firebase */
+        .firebase-rules {
+            background: var(--bg-primary);
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            transition: background-color 0.3s;
+        }
+        .firebase-rules code {
+            display: block;
+            line-height: 1.6;
+        }
+        .copy-btn {
+            background: #465a65;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-top: 8px;
+            text-transform: uppercase;
+        }
+        .copy-btn:hover {
+            background: #354a55;
+        }
+
+        /* --- Страница о разработчиках --- */
+        .about-container {
+            padding: 16px;
+            background: var(--bg-card);
+            flex: 1;
+            transition: background-color 0.3s;
+        }
+        .about-container .version {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        .about-container .dev-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+        .about-container .dev-card {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .about-container .dev-card img {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            margin: 0 auto 8px;
+            background: white;
+            padding: 4px;
+        }
+        .about-container .dev-card .dev-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .about-container .dev-card .dev-role {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .about-container h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 16px 0 8px;
+        }
+        .about-container p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .rickroll-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+            background: var(--bg-primary);
+        }
+        .rickroll-text {
+            color: #d32f2f;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+        .vinyl-animation {
+            font-size: 80px;
+            animation: spin 3s linear infinite;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .apps-grid-vertical {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px 4px;
+                padding: 8px 4px;
+            }
+            .apps-grid-vertical .app-card {
+                min-width: 0;
+            }
+            .apps-grid-vertical .app-name {
+                font-size: 10px;
+            }
+            .apps-grid-vertical .app-price {
+                font-size: 9px;
+            }
+            .about-container .dev-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="header-left">
+            <i class="material-icons water-ripple" id="burger-trigger" style="padding:4px;">menu</i>
+            <span class="header-title" id="main-title">Xdroid Market</span>
+            <div class="search-box" id="search-box-container">
+                <input type="text" id="search-input" placeholder="Поиск...">
+            </div>
+        </div>
+        <i class="material-icons water-ripple" id="search-trigger" style="padding:4px;">search</i>
+    </header>
+
+    <div class="categories-grid">
+        <div class="cat-btn cat-apps water-ripple" onclick="openSection('apps')"><i class="material-icons">android</i>Приложения</div>
+        <div class="cat-btn cat-games water-ripple" onclick="openSection('games')"><i class="material-icons">videogame_asset</i>Игры</div>
+        <div class="cat-btn cat-movies water-ripple" onclick="openLazyScreen()"><i class="material-icons">movie</i>Фильмы</div>
+        <div class="cat-btn cat-music water-ripple" onclick="openLazyScreen()"><i class="material-icons">headset</i>Музыка</div>
+        <div class="cat-btn cat-books water-ripple" onclick="openLazyScreen()"><i class="material-icons">book</i>Книги</div>
+        <div class="cat-btn cat-press water-ripple" onclick="openLazyScreen()"><i class="material-icons">newspaper</i>Пресса</div>
+    </div>
+
+    <div id="main-feed-container"></div>
+
+    <div class="full-page-overlay" id="section-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeSection()">arrow_back</i>
+            <span id="section-title-text">Раздел</span>
+        </div>
+        <div class="apps-grid-vertical" id="section-grid"></div>
+    </div>
+
+    <div class="full-page-overlay" id="lazy-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeLazyScreen()">arrow_back</i>
+            <span>Медиацентр</span>
+        </div>
+        <div class="rickroll-container">
+            <div class="rickroll-text">Бля мне лень это делать, лучше послушайте музон</div>
+            <div class="vinyl-animation">🎵</div>
+        </div>
+    </div>
+
+    <div class="full-page-overlay" id="details-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeAppDetails()">arrow_back</i>
+            <span id="det-header-title">Приложение</span>
+        </div>
+        <div id="details-content"></div>
+    </div>
+
+    <div class="full-page-overlay" id="developer-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeDeveloperProfile()">arrow_back</i>
+            <span id="dev-header-title">Разработчик</span>
+        </div>
+        <div class="developer-profile" id="developer-content"></div>
+    </div>
+
+    <!-- Настройки -->
+    <div class="full-page-overlay" id="settings-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeSettings()">arrow_back</i>
+            <span>Настройки</span>
+        </div>
+        <div class="settings-container">
+            <div class="settings-group">
+                <h3><i class="material-icons" style="font-size:18px;vertical-align:middle;">palette</i> Тема</h3>
+                <div class="toggle-row">
+                    <span>Тёмная тема</span>
+                    <div class="toggle-switch" id="theme-toggle" onclick="toggleTheme()">
+                        <div class="slider"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <h3><i class="material-icons" style="font-size:18px;vertical-align:middle;">cloud</i> Firebase Конфигурация</h3>
+                <label>API Key</label>
+                <input type="text" id="cfg-apiKey" placeholder="AIzaSy...">
+                <label>Auth Domain</label>
+                <input type="text" id="cfg-authDomain" placeholder="project.firebaseapp.com">
+                <label>Project ID</label>
+                <input type="text" id="cfg-projectId" placeholder="project-id">
+                <label>Storage Bucket</label>
+                <input type="text" id="cfg-storageBucket" placeholder="project.appspot.com">
+                <label>Messaging Sender ID</label>
+                <input type="text" id="cfg-messagingSenderId" placeholder="123456789">
+                <label>App ID</label>
+                <input type="text" id="cfg-appId" placeholder="1:123:web:abc123">
+            </div>
+
+            <div class="settings-group">
+                <h3><i class="material-icons" style="font-size:18px;vertical-align:middle;">image</i> Cloudinary</h3>
+                <label>Cloudinary URL</label>
+                <input type="text" id="cfg-cloudinaryUrl" placeholder="https://api.cloudinary.com/v1_1/.../image/upload">
+                <label>Upload Preset</label>
+                <input type="text" id="cfg-cloudinaryPreset" placeholder="ml_default">
+            </div>
+
+            <div class="settings-group">
+                <h3><i class="material-icons" style="font-size:18px;vertical-align:middle;">security</i> Рекомендуемые правила Firebase</h3>
+                <div class="firebase-rules" id="firebase-rules">
+                    <code>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Чтение всех коллекций разрешено всем
+    match /{document=**} {
+      allow read: if true;
+    }
+    
+    // Запись в коллекцию apps - только для администратора
+    match /apps/{appId} {
+      allow write: if request.auth != null && 
+                     request.auth.uid == 'YOUR_ADMIN_UID';
+      allow read: if true;
+    }
+    
+    // Отзывы - любой может писать
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow write: if request.resource.data.appId != null && 
+                       request.resource.data.text != null &&
+                       request.resource.data.rating != null;
+      allow update, delete: if false;
+    }
+    
+    // Для тестирования (ВНИМАНИЕ! Только для разработки!)
+    // match /{document=**} {
+    //   allow read, write: if true;
+    // }
+  }
+}</code>
+                </div>
+                <button class="copy-btn water-ripple" onclick="copyRules()">
+                    <i class="material-icons" style="font-size:16px;vertical-align:middle;">content_copy</i> Копировать правила
+                </button>
+                <div style="font-size:11px;color:var(--text-light);margin-top:8px;">
+                    <i class="material-icons" style="font-size:14px;vertical-align:middle;">info</i>
+                    Вставьте эти правила в консоли Firebase: Firestore → Правила
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <button class="save-settings-btn water-ripple" onclick="saveSettings()">
+                    <i class="material-icons" style="font-size:18px;vertical-align:middle;">save</i> Сохранить настройки
+                </button>
+                <div id="settings-status" class="settings-status"></div>
+            </div>
+
+            <div class="settings-group" style="border-bottom: none; margin-bottom: 0;">
+                <button class="save-settings-btn water-ripple" style="background:#465a65;" onclick="resetSettings()">
+                    <i class="material-icons" style="font-size:18px;vertical-align:middle;">refresh</i> Сбросить настройки
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- О разработчиках -->
+    <div class="full-page-overlay" id="about-screen">
+        <div class="page-header">
+            <i class="material-icons water-ripple" onclick="closeAbout()">arrow_back</i>
+            <span>О разработчиках</span>
+        </div>
+        <div class="about-container">
+            <div class="version">
+                <i class="material-icons" style="font-size:20px;vertical-align:middle;">info</i> Версия v1.1.8
+            </div>
+            
+            <h3>👨‍💻 Команда разработчиков</h3>
+            <div class="dev-grid">
+                <div class="dev-card">
+                    <img src="shpinat.png" alt="Shpinat" onerror="this.src='https://www.google.com/images/branding/googlelogo/1x/googlelogo_light_color_272x92dp.png'">
+                    <div class="dev-name">Shpinat</div>
+                    <div class="dev-role">Главный разработчик</div>
+                </div>
+                <div class="dev-card">
+                    <img src="hleb.png" alt="Хлеб" onerror="this.src='https://www.google.com/images/branding/googlelogo/1x/googlelogo_light_color_272x92dp.png'">
+                    <div class="dev-name">Хлеб</div>
+                    <div class="dev-role">UI/UX дизайнер</div>
+                </div>
+                <div class="dev-card">
+                    <img src="deepseek.png" alt="Дипсик" onerror="this.src='https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9ea.png'">
+                    <div class="dev-name">Дипсик</div>
+                    <div class="dev-role">AI-ассистент</div>
+                </div>
+            </div>
+
+            <h3>📱 О приложении</h3>
+            <p>Xdroid Market — это ретро-стилизованный магазин приложений, вдохновлённый дизайном Google Play 2015 года. 
+            Все данные синхронизируются с Firebase, а картинки загружаются через Cloudinary.</p>
+            <p style="margin-top:8px;">
+                <i class="material-icons" style="font-size:16px;vertical-align:middle;">code</i> Сделано с ❤️ в 2026 году
+            </p>
+        </div>
+    </div>
+
+    <div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer(false)"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            <div class="logo">
+                <img src="https://i.ibb.co/LXTz2nbK/2787-20260702164051.png" alt="Xdroid Market">
+            </div>
+            Xdroid Market
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openSection('apps')">
+            <i class="material-icons">apps</i>Приложения
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openSection('games')">
+            <i class="material-icons">videogame_asset</i>Игры
+        </div>
+        <div class="drawer-divider"></div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">local_movies</i>Фильмы
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">library_music</i>Музыка
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">book</i>Книги
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openLazyScreen()">
+            <i class="material-icons">newspaper</i>Пресса
+        </div>
+        <div class="drawer-divider"></div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openSettings()">
+            <i class="material-icons">settings</i>Настройки
+        </div>
+        <div class="drawer-item water-ripple" onclick="toggleDrawer(false);openAbout()">
+            <i class="material-icons">info</i>О разработчиках
+        </div>
+        <div class="drawer-divider"></div>
+        <div class="drawer-item water-ripple" onclick="window.location.href='add.html'" style="color:#689f38;">
+            <i class="material-icons">add_circle</i>Добавить
+        </div>
+    </div>
+
+    <audio id="rick-audio" loop src="https://ia801602.us.archive.org/11/items/gertvids_gmail_Rick/Rick.mp3"></audio>
+
+    <script>
+        // ============================================================
+        // 1. КОНФИГУРАЦИЯ ПО УМОЛЧАНИЮ
+        // ============================================================
+        const DEFAULT_CONFIG = {
+            firebase: {
+                apiKey: "AIzaSyAYflXXcFVaCMCmC0HXsKOkg4rdPnkbcKs",
+                authDomain: "ssba-bd7d6.firebaseapp.com",
+                projectId: "ssba-bd7d6",
+                storageBucket: "ssba-bd7d6.firebasestorage.app",
+                messagingSenderId: "776284145515",
+                appId: "1:776284145515:web:4bc47ad2dac9981fbaee2e"
+            },
+            cloudinary: {
+                url: "https://api.cloudinary.com/v1_1/t5xt96ku/image/upload",
+                preset: "ml_default"
+            },
+            theme: 'light'
+        };
+
+        // ============================================================
+        // 2. ЗАГРУЗКА НАСТРОЕК ИЗ localStorage
+        // ============================================================
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('xdroid_settings');
+                if (saved) {
+                    const config = JSON.parse(saved);
+                    return config;
+                }
+            } catch (e) {}
+            return DEFAULT_CONFIG;
+        }
+
+        function saveSettingsToStorage(config) {
+            localStorage.setItem('xdroid_settings', JSON.stringify(config));
+        }
+
+        let appConfig = loadSettings();
+
+        // ============================================================
+        // 3. ПРИМЕНЕНИЕ НАСТРОЕК К ИНТЕРФЕЙСУ
+        // ============================================================
+        function applySettings() {
+            if (appConfig.theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.getElementById('theme-toggle').classList.add('active');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.getElementById('theme-toggle').classList.remove('active');
+            }
+
+            document.getElementById('cfg-apiKey').value = appConfig.firebase.apiKey || '';
+            document.getElementById('cfg-authDomain').value = appConfig.firebase.authDomain || '';
+            document.getElementById('cfg-projectId').value = appConfig.firebase.projectId || '';
+            document.getElementById('cfg-storageBucket').value = appConfig.firebase.storageBucket || '';
+            document.getElementById('cfg-messagingSenderId').value = appConfig.firebase.messagingSenderId || '';
+            document.getElementById('cfg-appId').value = appConfig.firebase.appId || '';
+            document.getElementById('cfg-cloudinaryUrl').value = appConfig.cloudinary.url || '';
+            document.getElementById('cfg-cloudinaryPreset').value = appConfig.cloudinary.preset || '';
+        }
+
+        // ============================================================
+        // 4. ПЕРЕКЛЮЧЕНИЕ ТЕМЫ
+        // ============================================================
+        function toggleTheme() {
+            const toggle = document.getElementById('theme-toggle');
+            toggle.classList.toggle('active');
+            
+            if (toggle.classList.contains('active')) {
+                appConfig.theme = 'dark';
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                appConfig.theme = 'light';
+                document.documentElement.removeAttribute('data-theme');
+            }
+            saveSettingsToStorage(appConfig);
+        }
+
+        // ============================================================
+        // 5. КОПИРОВАНИЕ ПРАВИЛ
+        // ============================================================
+        function copyRules() {
+            const rules = document.querySelector('.firebase-rules code').textContent;
+            navigator.clipboard.writeText(rules).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="material-icons" style="font-size:16px;vertical-align:middle;">check</i> Скопировано!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = rules;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Правила скопированы в буфер обмена!');
+            });
+        }
+
+        // ============================================================
+        // 6. СОХРАНЕНИЕ НАСТРОЕК
+        // ============================================================
+        function saveSettings() {
+            const status = document.getElementById('settings-status');
+            
+            try {
+                const newConfig = {
+                    firebase: {
+                        apiKey: document.getElementById('cfg-apiKey').value.trim(),
+                        authDomain: document.getElementById('cfg-authDomain').value.trim(),
+                        projectId: document.getElementById('cfg-projectId').value.trim(),
+                        storageBucket: document.getElementById('cfg-storageBucket').value.trim(),
+                        messagingSenderId: document.getElementById('cfg-messagingSenderId').value.trim(),
+                        appId: document.getElementById('cfg-appId').value.trim()
+                    },
+                    cloudinary: {
+                        url: document.getElementById('cfg-cloudinaryUrl').value.trim(),
+                        preset: document.getElementById('cfg-cloudinaryPreset').value.trim()
+                    },
+                    theme: appConfig.theme
+                };
+
+                if (!newConfig.firebase.apiKey || !newConfig.firebase.projectId) {
+                    throw new Error('API Key и Project ID обязательны для Firebase');
+                }
+
+                appConfig = newConfig;
+                saveSettingsToStorage(appConfig);
+                
+                status.className = 'settings-status success';
+                status.textContent = '✅ Настройки сохранены! Перезагрузите страницу для применения.';
+                status.style.display = 'block';
+                
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 5000);
+            } catch (e) {
+                status.className = 'settings-status error';
+                status.textContent = '❌ Ошибка: ' + e.message;
+                status.style.display = 'block';
+            }
+        }
+
+        function resetSettings() {
+            if (confirm('Сбросить все настройки до заводских?')) {
+                appConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+                saveSettingsToStorage(appConfig);
+                applySettings();
+                const status = document.getElementById('settings-status');
+                status.className = 'settings-status success';
+                status.textContent = '✅ Настройки сброшены! Перезагрузите страницу.';
+                status.style.display = 'block';
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // ============================================================
+        // 7. ОТКРЫТИЕ/ЗАКРЫТИЕ СТРАНИЦ
+        // ============================================================
+        function openSettings() {
+            toggleDrawer(false);
+            document.getElementById('settings-screen').style.display = 'flex';
+            applySettings();
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-screen').style.display = 'none';
+        }
+
+        function openAbout() {
+            toggleDrawer(false);
+            document.getElementById('about-screen').style.display = 'flex';
+        }
+
+        function closeAbout() {
+            document.getElementById('about-screen').style.display = 'none';
+        }
+
+        // ============================================================
+        // 8. XSS ЗАЩИТА
+        // ============================================================
+        function escapeHTML(str) {
+            if (!str) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#x27;',
+                '/': '&#x2F;',
+                '`': '&#x60;',
+                '=': '&#x3D;'
+            };
+            return String(str).replace(/[&<>"'`=\/]/g, function(s) {
+                return map[s];
+            });
+        }
+
+        // ============================================================
+        // 9. ФОРМАТИРОВАНИЕ ДАТЫ
+        // ============================================================
+        function formatDate(timestamp) {
+            if (!timestamp) return 'Только что';
+            try {
+                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                if (diff < 60000) return 'Только что';
+                if (diff < 3600000) return Math.floor(diff / 60000) + ' мин. назад';
+                if (diff < 86400000) return Math.floor(diff / 3600000) + ' ч. назад';
+                if (diff < 604800000) return Math.floor(diff / 86400000) + ' дн. назад';
+                const options = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+                return date.toLocaleDateString('ru-RU', options);
+            } catch (e) {
+                return 'Неизвестно';
+            }
+        }
+
+        // ============================================================
+        // 10. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ============================================================
+        let currentAppId = null;
+        let selectedStars = 0;
+        let currentSection = 'games';
+        let currentDeveloper = '';
+        let db = null;
+
+        // ============================================================
+        // 11. ИНИЦИАЛИЗАЦИЯ FIREBASE
+        // ============================================================
+        function initFirebase() {
+            try {
+                const config = appConfig.firebase;
+                if (!config.apiKey || !config.projectId) {
+                    console.warn('⚠️ Firebase не настроен. Используются значения по умолчанию.');
+                    return false;
+                }
+                
+                firebase.initializeApp(config);
+                db = firebase.firestore();
+                console.log('✅ Firebase инициализирован с пользовательскими настройками');
+                return true;
+            } catch (e) {
+                console.error('❌ Ошибка инициализации Firebase:', e);
+                return false;
+            }
+        }
+
+        let firebaseInitialized = initFirebase();
+
+        if (!firebaseInitialized) {
+            try {
+                firebase.initializeApp(DEFAULT_CONFIG.firebase);
+                db = firebase.firestore();
+                console.log('✅ Firebase инициализирован с настройками по умолчанию');
+            } catch (e) {
+                console.error('❌ Критическая ошибка Firebase:', e);
+            }
+        }
+
+        // ============================================================
+        // 12. КОНФИГУРАЦИЯ ЛЕНТ
+        // ============================================================
+        const FEED_CONFIGS = [{
+            id: 'feed-new',
+            title: 'Новинки и обновления',
+            subtitle: 'Свежие приложения',
+            query: (ref) => ref.orderBy('timestamp', 'desc').limit(6),
+            section: 'apps'
+        }, {
+            id: 'feed-logic',
+            title: 'Игры на логику',
+            subtitle: 'Проверь свой интеллект',
+            query: (ref) => ref.where('category', '==', 'logic').limit(6),
+            section: 'games'
+        }, {
+            id: 'feed-services',
+            title: 'Актуальные сервисы',
+            subtitle: 'Полезные инструменты',
+            query: (ref) => ref.where('category', '==', 'services').limit(6),
+            section: 'apps'
+        }, {
+            id: 'feed-social',
+            title: 'Социальные сети',
+            subtitle: 'Будь на связи',
+            query: (ref) => ref.where('category', '==', 'social').limit(6),
+            section: 'apps'
+        }, {
+            id: 'feed-latest',
+            title: 'Последние приложения',
+            subtitle: 'Свежие поступления',
+            query: (ref) => ref.orderBy('timestamp', 'desc').limit(6),
+            section: 'apps'
+        }];
+
+        // ============================================================
+        // 13. ОТРИСОВКА ЛЕНТ
+        // ============================================================
+        function renderFeeds() {
+            const container = document.getElementById('main-feed-container');
+            container.innerHTML = '';
+
+            FEED_CONFIGS.forEach((cfg) => {
+                const section = document.createElement('div');
+                section.className = 'section-container';
+                section.id = cfg.id;
+
+                const header = document.createElement('div');
+                header.className = 'section-header';
+                header.innerHTML = `
+                        <div>
+                            <div class="section-title">${escapeHTML(cfg.title)}</div>
+                            <div class="section-subtitle">${escapeHTML(cfg.subtitle)}</div>
+                        </div>
+                        <div class="btn-more water-ripple" onclick="openSection('${cfg.section}')">Ещё</div>
+                    `;
+
+                const list = document.createElement('div');
+                list.className = 'apps-list';
+                list.id = `${cfg.id}-list`;
+                list.innerHTML = '<div style="padding:10px;color:#999;">Загрузка...</div>';
+
+                section.appendChild(header);
+                section.appendChild(list);
+                container.appendChild(section);
+
+                if (!db) {
+                    list.innerHTML = '<div style="padding:10px;color:#d32f2f;">❌ Ошибка подключения к Firebase</div>';
+                    return;
+                }
+
+                let query = db.collection('apps');
+                if (cfg.query) {
+                    query = cfg.query(query);
+                }
+                if (!cfg.query.toString().includes('where')) {
+                    query = db.collection('apps').orderBy('timestamp', 'desc').limit(6);
+                }
+
+                query.get()
+                    .then(snapshot => {
+                        list.innerHTML = '';
+                        if (snapshot.empty) {
+                            list.innerHTML = '<div style="padding:10px;color:#999;">Нет приложений</div>';
+                            return;
+                        }
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            const card = createAppCard(doc.id, data);
+                            list.appendChild(card);
+                        });
+                    })
+                    .catch(err => {
+                        list.innerHTML = '<div style="padding:10px;color:#d32f2f;">Ошибка загрузки</div>';
+                        console.error(err);
+                    });
+            });
+        }
+
+        // ============================================================
+        // 14. СОЗДАНИЕ КАРТОЧКИ
+        // ============================================================
+        function createAppCard(id, data) {
+            const card = document.createElement('div');
+            card.className = 'app-card water-ripple';
+            card.onclick = () => openAppDetails(id);
+
+            const thumb = document.createElement('div');
+            thumb.className = 'app-thumb';
+            if (data.imageUrl) {
+                const img = document.createElement('img');
+                img.src = data.imageUrl;
+                img.alt = escapeHTML(data.name || 'App');
+                img.loading = 'lazy';
+                thumb.appendChild(img);
+            } else {
+                thumb.innerHTML = '<i class="material-icons" style="font-size:32px;color:#999;">android</i>';
+            }
+
+            const meta = document.createElement('div');
+            meta.className = 'app-meta';
+            const name = document.createElement('div');
+            name.className = 'app-name';
+            name.textContent = escapeHTML(data.name || 'Без названия');
+            const price = document.createElement('div');
+            price.className = 'app-price';
+            price.textContent = escapeHTML(data.price || 'Бесплатно');
+
+            meta.appendChild(name);
+            meta.appendChild(price);
+            card.appendChild(thumb);
+            card.appendChild(meta);
+
+            return card;
+        }
+
+        // ============================================================
+        // 15. ЗАГРУЗКА РАЗДЕЛА
+        // ============================================================
+        function loadSection(section) {
+            currentSection = section;
+            const grid = document.getElementById('section-grid');
+            grid.innerHTML = '<div style="padding:20px;color:#999;">Загрузка...</div>';
+
+            if (!db) {
+                grid.innerHTML = '<div style="padding:20px;color:#d32f2f;">❌ Ошибка подключения к Firebase</div>';
+                return;
+            }
+
+            db.collection('apps').where('section', '==', section).get()
+                .then(snapshot => {
+                    grid.innerHTML = '';
+                    if (snapshot.empty) {
+                        grid.innerHTML = '<div style="padding:20px;color:#999;">Нет приложений</div>';
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const card = createAppCard(doc.id, data);
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(err => {
+                    grid.innerHTML = '<div style="padding:20px;color:#d32f2f;">Ошибка</div>';
+                    console.error(err);
+                });
+        }
+
+        // ============================================================
+        // 16. НАВИГАЦИЯ
+        // ============================================================
+        function openSection(section) {
+            document.getElementById('section-screen').style.display = 'flex';
+            document.getElementById('section-title-text').textContent =
+                section === 'apps' ? 'Приложения' : 'Игры';
+            loadSection(section);
+            toggleDrawer(false);
+        }
+
+        function closeSection() {
+            document.getElementById('section-screen').style.display = 'none';
+        }
+
+        function openLazyScreen() {
+            toggleDrawer(false);
+            document.getElementById('lazy-screen').style.display = 'flex';
+            document.getElementById('rick-audio').play().catch(() => {});
+        }
+
+        function closeLazyScreen() {
+            document.getElementById('lazy-screen').style.display = 'none';
+            const audio = document.getElementById('rick-audio');
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        // ============================================================
+        // 17. ДЕТАЛИ + ОТЗЫВЫ
+        // ============================================================
+        function openAppDetails(docId) {
+            currentAppId = docId;
+            const screen = document.getElementById('details-screen');
+            screen.style.display = 'flex';
+
+            if (!db) {
+                document.getElementById('details-content').innerHTML = 
+                    '<div style="padding:20px;color:#d32f2f;">❌ Ошибка подключения к Firebase</div>';
+                return;
+            }
+
+            db.collection('apps').doc(docId).get()
+                .then(doc => {
+                    if (!doc.exists) return;
+                    const data = doc.data();
+                    renderDetails(data, docId);
+                    loadReviews(docId);
+                })
+                .catch(err => console.error(err));
+        }
+
+        function renderDetails(data, docId) {
+            const container = document.getElementById('details-content');
+            const iconHtml = data.imageUrl ?
+                `<img src="${data.imageUrl}" alt="icon">` :
+                '<i class="material-icons" style="font-size:40px;color:#999;">android</i>';
+
+            container.innerHTML = `
+                    <div class="app-detail-main">
+                        <div class="app-detail-img">${iconHtml}</div>
+                        <div class="app-detail-info">
+                            <h2>${escapeHTML(data.name || 'Без названия')}</h2>
+                            <div class="developer" onclick="openDeveloperProfile('${escapeHTML(data.developer || '')}')">
+                                ${escapeHTML(data.developer || 'Неизвестный разработчик')}
+                            </div>
+                            <div class="meta-row">
+                                <span><i class="material-icons">star</i> ${escapeHTML(data.rating || 'Нет оценок')}</span>
+                                <span><i class="material-icons">download</i> ${escapeHTML(data.downloads || '0')}+</span>
+                                <span><i class="material-icons">android</i> ${escapeHTML(data.compatibility || 'Не указано')}</span>
+                                <span><i class="material-icons">verified_user</i> ${escapeHTML(data.ageRating || '0+')}</span>
+                            </div>
+                            <div style="font-size:12px;color:#999;margin-top:4px;">
+                                Версия ${escapeHTML(data.version || '1.0.0')}
+                            </div>
+                            <button class="btn-install water-ripple" onclick="installApp('${escapeHTML(data.apkLink || '')}')">
+                                <i class="material-icons" style="font-size:18px;vertical-align:middle;">file_download</i>
+                                Установить
+                            </button>
+                        </div>
+                    </div>
+                    <div style="padding:0 16px 8px;background:var(--bg-card);">
+                        <p style="font-size:14px;color:var(--text-secondary);line-height:1.5;">${escapeHTML(data.description || '')}</p>
+                    </div>
+                    <div class="screenshots-scroll">
+                        ${data.screenshots && data.screenshots.length > 0 ?
+                            data.screenshots.map(url => `<img src="${escapeHTML(url)}" alt="Скриншот">`).join('') :
+                            '<div style="padding:20px;color:#999;">Нет скриншотов</div>'
+                        }
+                    </div>
+                    <div class="reviews-section">
+                        <h3 style="font-size:14px;font-weight:500;color:var(--text-primary);">Отзывы</h3>
+                        <div id="reviews-list"></div>
+                    </div>
+                    <div class="review-form">
+                        <input type="text" id="review-author-input" placeholder="Ваше имя" value="Аноним">
+                        <div class="stars-select" id="stars-select">
+                            <i class="material-icons" data-star="1">star_border</i>
+                            <i class="material-icons" data-star="2">star_border</i>
+                            <i class="material-icons" data-star="3">star_border</i>
+                            <i class="material-icons" data-star="4">star_border</i>
+                            <i class="material-icons" data-star="5">star_border</i>
+                        </div>
+                        <textarea id="review-text-input" placeholder="Ваш отзыв..."></textarea>
+                        <button class="btn-submit-review water-ripple" onclick="submitReview()">Отправить</button>
+                    </div>
+                `;
+
+            document.getElementById('det-header-title').textContent = escapeHTML(data.name || 'Приложение');
+        }
+
+        function closeAppDetails() {
+            document.getElementById('details-screen').style.display = 'none';
+            currentAppId = null;
+        }
+
+        // ============================================================
+        // 18. ЗАГРУЗКА ОТЗЫВОВ (БЕЗ ИНДЕКСА!)
+        // ============================================================
+        function loadReviews(appId) {
+            const container = document.getElementById('reviews-list');
+            container.innerHTML = '<div style="color:#999;padding:10px 0;">Загрузка...</div>';
+
+            if (!db) {
+                container.innerHTML = '<div style="color:#d32f2f;padding:10px 0;">❌ Ошибка подключения к Firebase</div>';
+                return;
+            }
+
+            db.collection('reviews')
+                .where('appId', '==', appId)
+                .get()
+                .then(snapshot => {
+                    const reviews = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        reviews.push({
+                            id: doc.id,
+                            ...data,
+                            timestamp: data.timestamp ? data.timestamp.toMillis() : 0
+                        });
+                    });
+                    
+                    reviews.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    container.innerHTML = '';
+                    if (reviews.length === 0) {
+                        container.innerHTML = '<div style="color:#999;padding:10px 0;">Пока нет отзывов. Будьте первым!</div>';
+                        return;
+                    }
+                    
+                    reviews.forEach(r => {
+                        const item = document.createElement('div');
+                        item.className = 'review-item';
+                        const fullStars = Math.round(r.rating) || 0;
+                        const stars = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
+                        const dateStr = formatDate(r.timestamp);
+                        
+                        item.innerHTML = `
+                            <div class="review-author">${escapeHTML(r.author) || 'Аноним'}</div>
+                            <div class="review-stars">${stars}</div>
+                            <div class="review-date">${dateStr}</div>
+                            <div class="review-text">${escapeHTML(r.text) || ''}</div>
+                        `;
+                        container.appendChild(item);
+                    });
+                })
+                .catch(err => {
+                    console.error('Ошибка загрузки отзывов:', err);
+                    container.innerHTML = '<div style="color:#d32f2f;padding:10px 0;">❌ Ошибка загрузки отзывов</div>';
+                });
+        }
+
+        // ============================================================
+        // 19. ОТПРАВКА ОТЗЫВА
+        // ============================================================
+        function submitReview() {
+            if (!currentAppId) { 
+                alert('Откройте приложение'); 
+                return; 
+            }
+            
+            if (!db) {
+                alert('❌ Ошибка подключения к Firebase');
+                return;
+            }
+            
+            const author = document.getElementById('review-author-input').value.trim() || 'Аноним';
+            const text = document.getElementById('review-text-input').value.trim();
+            
+            if (!text) { 
+                alert('Напишите отзыв'); 
+                return; 
+            }
+            
+            if (selectedStars === 0) { 
+                alert('Поставьте оценку (звёзды)'); 
+                return; 
+            }
+
+            db.collection('reviews').add({
+                appId: currentAppId,
+                author: author,
+                text: text,
+                rating: selectedStars,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('review-text-input').value = '';
+                selectedStars = 0;
+                updateStarsUI();
+                loadReviews(currentAppId);
+            })
+            .catch(err => {
+                console.error('Ошибка отправки отзыва:', err);
+                alert('❌ Ошибка отправки отзыва');
+            });
+        }
+
+        // ============================================================
+        // 20. УСТАНОВКА ПРИЛОЖЕНИЯ
+        // ============================================================
+        function installApp(apkLink) {
+            if (apkLink) {
+                window.open(apkLink, '_blank');
+            } else {
+                alert('Ссылка для скачивания не указана разработчиком');
+            }
+        }
+
+        // ============================================================
+        // 21. ПРОФИЛЬ РАЗРАБОТЧИКА
+        // ============================================================
+        function openDeveloperProfile(developerName) {
+            if (!developerName) {
+                alert('Разработчик не указан');
+                return;
+            }
+            currentDeveloper = developerName;
+            document.getElementById('developer-screen').style.display = 'flex';
+            document.getElementById('dev-header-title').textContent = escapeHTML(developerName);
+
+            const container = document.getElementById('developer-content');
+            container.innerHTML = `
+                    <h2>${escapeHTML(developerName)}</h2>
+                    <p style="color:var(--text-secondary);margin-bottom:16px;">Все приложения разработчика</p>
+                    <div class="developer-apps-grid" id="dev-apps-grid">
+                        <div style="color:#999;">Загрузка...</div>
+                    </div>
+                `;
+
+            if (!db) {
+                document.getElementById('dev-apps-grid').innerHTML = 
+                    '<div style="color:#d32f2f;">❌ Ошибка подключения к Firebase</div>';
+                return;
+            }
+
+            db.collection('apps')
+                .where('developer', '==', developerName)
+                .get()
+                .then(snapshot => {
+                    const grid = document.getElementById('dev-apps-grid');
+                    grid.innerHTML = '';
+                    if (snapshot.empty) {
+                        grid.innerHTML = '<div style="color:#999;">Нет приложений</div>';
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const card = document.createElement('div');
+                        card.className = 'developer-app-card';
+                        card.onclick = () => {
+                            closeDeveloperProfile();
+                            openAppDetails(doc.id);
+                        };
+                        const img = data.imageUrl ?
+                            `<img src="${escapeHTML(data.imageUrl)}" alt="${escapeHTML(data.name)}">` :
+                            '<div style="width:70px;height:70px;background:var(--bg-primary);display:flex;align-items:center;justify-content:center;margin:0 auto;"><i class="material-icons" style="font-size:32px;color:#999;">android</i></div>';
+                        card.innerHTML = `
+                                ${img}
+                                <div class="dev-app-name">${escapeHTML(data.name || 'Без названия')}</div>
+                            `;
+                        grid.appendChild(card);
+                    });
+                })
+                .catch(err => {
+                    document.getElementById('dev-apps-grid').innerHTML =
+                        '<div style="color:#d32f2f;">Ошибка загрузки</div>';
+                    console.error(err);
+                });
+        }
+
+        function closeDeveloperProfile() {
+            document.getElementById('developer-screen').style.display = 'none';
+            currentDeveloper = '';
+        }
+
+        // ============================================================
+        // 22. ЗВЁЗДЫ
+        // ============================================================
+        document.addEventListener('click', function(e) {
+            const starEl = e.target.closest('#stars-select i');
+            if (!starEl) return;
+            selectedStars = parseInt(starEl.dataset.star);
+            updateStarsUI();
+        });
+
+        function updateStarsUI() {
+            document.querySelectorAll('#stars-select i').forEach(el => {
+                el.textContent = parseInt(el.dataset.star) <= selectedStars ? 'star' : 'star_border';
+            });
+        }
+
+        // ============================================================
+        // 23. БУРГЕР
+        // ============================================================
+        document.getElementById('burger-trigger').addEventListener('click', () => toggleDrawer(true));
+
+        function toggleDrawer(open) {
+            const overlay = document.getElementById('drawer-overlay');
+            const drawer = document.getElementById('drawer');
+            if (open) {
+                overlay.style.display = 'block';
+                setTimeout(() => drawer.classList.add('open'), 10);
+            } else {
+                drawer.classList.remove('open');
+                setTimeout(() => overlay.style.display = 'none', 300);
+            }
+        }
+
+        // ============================================================
+        // 24. ПОИСК
+        // ============================================================
+        document.getElementById('search-trigger').addEventListener('click', () => {
+            const box = document.getElementById('search-box-container');
+            const title = document.getElementById('main-title');
+            if (box.style.display === 'block') {
+                box.style.display = 'none';
+                title.style.display = 'block';
+                document.getElementById('search-input').value = '';
+                document.querySelectorAll('.app-card').forEach(c => c.style.display = '');
+            } else {
+                title.style.display = 'none';
+                box.style.display = 'block';
+                document.getElementById('search-input').focus();
+            }
+        });
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.app-card').forEach(card => {
+                const name = card.querySelector('.app-name')?.innerText?.toLowerCase() || '';
+                card.style.display = name.includes(query) ? '' : 'none';
+            });
+        });
+
+        // ============================================================
+        // 25. WATER-RIPPLE
+        // ============================================================
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('.water-ripple');
+            if (!target) return;
+            if (navigator.vibrate) navigator.vibrate(5);
+
+            const circle = document.createElement('span');
+            const diameter = Math.max(target.clientWidth, target.clientHeight);
+            const radius = diameter / 2;
+            circle.style.cssText = `
+                    position:absolute;border-radius:50%;
+                    background:rgba(255,255,255,0.3);
+                    transform:scale(0);
+                    animation:ripple-animation 0.5s linear;
+                    pointer-events:none;
+                    width:${diameter}px;height:${diameter}px;
+                    left:${e.clientX - target.getBoundingClientRect().left - radius}px;
+                    top:${e.clientY - target.getBoundingClientRect().top - radius}px;
+                `;
+            const prev = target.querySelector('.ripple');
+            if (prev) prev.remove();
+            circle.classList.add('ripple');
+            target.appendChild(circle);
+        });
+
+        const style = document.createElement('style');
+        style.textContent = `
+                @keyframes ripple-animation {
+                    to { transform: scale(4); opacity: 0; }
+                }
+            `;
+        document.head.appendChild(style);
+
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        // ============================================================
+        // 26. ЗАПУСК
+        // ============================================================
+        applySettings();
+        renderFeeds();
+
+        // Экспорт в глобальную область
+        window.openSection = openSection;
+        window.closeSection = closeSection;
+        window.openLazyScreen = openLazyScreen;
+        window.closeLazyScreen = closeLazyScreen;
+        window.openAppDetails = openAppDetails;
+        window.closeAppDetails = closeAppDetails;
+        window.openDeveloperProfile = openDeveloperProfile;
+        window.closeDeveloperProfile = closeDeveloperProfile;
+        window.installApp = installApp;
+        window.submitReview = submitReview;
+        window.toggleDrawer = toggleDrawer;
+        window.openSettings = openSettings;
+        window.closeSettings = closeSettings;
+        window.openAbout = openAbout;
+        window.closeAbout = closeAbout;
+        window.toggleTheme = toggleTheme;
+        window.saveSettings = saveSettings;
+        window.resetSettings = resetSettings;
+        window.copyRules = copyRules;
+    </script>
+</body>
+</html>
